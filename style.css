@@ -2,17 +2,13 @@
  * PROJECT:        WAR (Work Activity Report)
  * FILE:           style.css
  * AUTHOR:         Jason Coster-Mullen (Original), Gemini Enterprise (Refactor)
- * VERSION:        7.0 (Stable Release)
+ * VERSION:        8.0 (Job Mode Feature)
  * LAST MODIFIED:  2026-02-10
  * DESCRIPTION:
- *   Provides the complete styling for the WAR application, governing the
- *   layout, typography, color scheme, and responsiveness of all components.
- *   Key features of this finalized stylesheet include the flexbox-based
- *   layouts for the main containers and the use of the 'visibility'
- *   property to create a true, position-stable toggle effect for the
- *   main control buttons.
+ *   Provides the complete styling for the WAR application. This stable
+ *   version governs all layouts, including the dynamic forms and header
+ *   controls, ensuring a consistent and responsive user experience.
  ******************************************************************************/
-
 /* --- General Body & Layout --- */
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
 
@@ -22,7 +18,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     margin: 0 auto 20px auto;
 }
 
-/* MODIFICATION: A simple flex container that centers the block of buttons */
 .controls-group.top-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -36,12 +31,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     flex-basis: 160px;
 }
 
-/* MODIFICATION: The key change. Hides elements but keeps their space */
 .ghost {
     visibility: hidden !important;
 }
 
-/* This is the old class, kept for compatibility in case it's used elsewhere */
 .hidden {
     display: none !important;
 }
