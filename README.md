@@ -4,6 +4,8 @@
 
 Welcome to the Work Activity Report (WAR) tool! This is a simple, powerful, and private application designed to help you quickly log and organize your daily work activities. It runs entirely in your web browser, meaning **none of your data ever leaves your computer**. This guide will walk you through its features and best practices.
 
+> **Want to contribute?** Check out our [Contributing Guide](CONTRIBUTING.md) to learn how to edit files on GitHub and submit your changes!
+
 ## Key Features
 
 *   **Versatile Logging:** Log everything from daily tasks and meetings to identified risks and client feedback.
