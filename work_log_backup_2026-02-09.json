@@ -1,0 +1,134 @@
+[
+  {
+    "id": "1770674204485",
+    "type": "task",
+    "date": "2026-02-09",
+    "project": "",
+    "status": "Completed",
+    "description": "I ran a full inventory scan of the NAVSOC network for supervision to review and take action on.",
+    "category": "Scripting / Automation"
+  },
+  {
+    "id": "1770654834688",
+    "type": "task",
+    "date": "2026-02-09",
+    "project": "",
+    "status": "Completed",
+    "description": "I wrote a script to remove a user profile from any individual computer or an entire AD OU group of computers.",
+    "category": "Scripting / Automation"
+  },
+  {
+    "id": "1770647371238",
+    "type": "task",
+    "date": "2026-02-09",
+    "project": "",
+    "status": "Completed",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script.",
+    "category": "Scripting / Automation"
+  },
+  {
+    "id": "1770647365428",
+    "type": "task",
+    "date": "2026-02-08",
+    "project": "",
+    "status": "In Progress",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script.",
+    "category": "Scripting / Automation"
+  },
+  {
+    "id": "1770386444068",
+    "type": "task",
+    "date": "2026-02-06",
+    "category": "Scripting / Automation",
+    "status": "In Progress",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script."
+  },
+  {
+    "id": "1770308599470",
+    "type": "task",
+    "date": "2026-02-05",
+    "category": "Ticketing / Administrative",
+    "status": "Completed",
+    "description": "Closed 4 sub task tickets and 2 main tickets for decommissioning 2 virtual servers."
+  },
+  {
+    "id": "1770299662282",
+    "type": "task",
+    "date": "2026-02-05",
+    "category": "Scripting / Automation",
+    "status": "In Progress",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script."
+  },
+  {
+    "id": "1770299652671",
+    "type": "task",
+    "date": "2026-02-05",
+    "category": "Ticketing / Administrative",
+    "status": "Completed",
+    "description": "Closed 2 network drive access request tickets"
+  },
+  {
+    "id": "1770299626692",
+    "type": "task",
+    "date": "2026-02-04",
+    "category": "Scripting / Automation",
+    "status": "In Progress",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script."
+  },
+  {
+    "id": "1770131463043",
+    "type": "task",
+    "date": "2026-02-03",
+    "category": "Other",
+    "status": "Completed",
+    "description": "Completed corporate training for Booz Allen Hamilton"
+  },
+  {
+    "id": "1770131416529",
+    "type": "task",
+    "date": "2026-02-03",
+    "category": "Scripting / Automation",
+    "status": "In Progress",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script."
+  },
+  {
+    "id": "1770131396754",
+    "type": "task",
+    "date": "2026-02-02",
+    "category": "Scripting / Automation",
+    "status": "In Progress",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script."
+  },
+  {
+    "id": "1769786506274",
+    "type": "task",
+    "date": "2026-01-29",
+    "category": "Scripting / Automation",
+    "status": "In Progress",
+    "description": "Continued work on the GUI version of the PC Inventory fetch script."
+  },
+  {
+    "id": "1769699655685",
+    "type": "task",
+    "date": "2026-01-29",
+    "category": "Scripting / Automation",
+    "status": "In Progress",
+    "description": "Working on a PowerShell GUI based version of the script to fetch inventory from all online computers on the NIPR network in all of NAVSOC that will write all its data to a Microsoft SQL server. I also created a frontend excel spreadsheet to view the gathered data so supervision and other technicians can review the data."
+  },
+  {
+    "id": "1769625372935",
+    "type": "task",
+    "date": "2026-01-28",
+    "category": "Scripting / Automation",
+    "status": "Completed",
+    "description": "Created a script to fetch inventory from all online computers on the NIPR network in all of NAVSOC that will write all its data to a Microsoft SQL server. I also created a frontend excel spreadsheet to view the gathered data so supervision and other technicians can review the data."
+  },
+  {
+    "id": "1769623357303",
+    "type": "task",
+    "date": "2026-01-28",
+    "category": "Scripting / Automation",
+    "status": "Completed",
+    "description": "I wrote a HTML website to log all work activities on a daily basis for the purposes of helping to create a monthly work activity report."
+  }
+]

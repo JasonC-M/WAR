@@ -1,0 +1,111 @@
+/******************************************************************************
+ * PROJECT:        WAR (Work Activity Report)
+ * FILE:           style.css
+ * AUTHOR:         Jason Coster-Mullen (Original), Gemini Enterprise (Refactor)
+ * VERSION:        7.0 (Stable Release)
+ * LAST MODIFIED:  2026-02-10
+ * DESCRIPTION:
+ *   Provides the complete styling for the WAR application, governing the
+ *   layout, typography, color scheme, and responsiveness of all components.
+ *   Key features of this finalized stylesheet include the flexbox-based
+ *   layouts for the main containers and the use of the 'visibility'
+ *   property to create a true, position-stable toggle effect for the
+ *   main control buttons.
+ ******************************************************************************/
+
+/* --- General Body & Layout --- */
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
+
+/* --- Main Header & Button Controls --- */
+.main-header {
+    max-width: 1400px;
+    margin: 0 auto 20px auto;
+}
+
+/* MODIFICATION: A simple flex container that centers the block of buttons */
+.controls-group.top-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center; /* Center the whole group */
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.controls-group.top-buttons button {
+    flex-grow: 0; /* Prevent any button from expanding */
+    flex-basis: 160px;
+}
+
+/* MODIFICATION: The key change. Hides elements but keeps their space */
+.ghost {
+    visibility: hidden !important;
+}
+
+/* This is the old class, kept for compatibility in case it's used elsewhere */
+.hidden {
+    display: none !important;
+}
+
+.container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: minmax(400px, 1fr) 2fr; gap: 20px; align-items: start; }
+h1, h2, h3 { color: #333; }
+h2 { margin: 0; }
+
+/* --- Form & Log Containers --- */
+.form-container, .log-view-container { background: #fff; padding: 10px 25px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.log-view-container { display: flex; flex-direction: column; box-sizing: border-box; }
+
+/* --- Main Form Styling --- */
+#log-form label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
+#log-form input, #log-form select, #log-form textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+#log-type-selector { padding: 12px; background-color: #e9ecef; font-weight: bold; border-color: #ced4da; }
+#log-form button[type="submit"] { width: 100%; padding: 12px; margin-top: 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; background-color: #007bff; color: white; }
+#log-form button[type="submit"]:hover { background-color: #0056b3; }
+
+/* --- Dynamic Form & Usability Styles --- */
+.form-section { display: none; border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px; }
+.form-section.active { display: block; }
+.info-tooltip { display: inline-block; margin-left: 5px; color: #007bff; font-weight: bold; cursor: help; border: 1px solid #007bff; border-radius: 50%; width: 18px; height: 18px; text-align: center; line-height: 16px; font-size: 12px; }
+input::placeholder, textarea::placeholder { color: #adb5bd; font-style: italic; }
+
+/* --- Log View & Controls --- */
+.log-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.filter-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.filter-controls { display: flex; align-items: center; gap: 15px; }
+#search-input { width: 250px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+#month-filter { padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; }
+
+button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14px; border: none; color: white; }
+#import-btn { background-color: #28a745; } #import-btn:hover { background-color: #218838; }
+#export-btn { background-color: #17a2b8; } #export-btn:hover { background-color: #138496; }
+#generate-report-btn { background-color: #007bff; }
+#generate-report-btn:hover { background-color: #0056b3; }
+#generate-annual-report-btn { background-color: #17a2b8; }
+#generate-annual-report-btn:hover { background-color: #138496; }
+#clear-month-btn, #clear-all-btn { background-color: #dc3545; } #clear-month-btn:hover, #clear-all-btn:hover { background-color: #c82333; }
+#toggle-view-btn { background-color: #6c757d; } #toggle-view-btn:hover { background-color: #5a6268; }
+
+.data-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; padding: 15px; border-radius: 4px; text-align: center; font-size: 14px; }
+
+/* --- Scrolling Table Logic --- */
+.table-wrapper { flex-grow: 1; overflow-y: auto; position: relative; min-height: 150px; }
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th { position: sticky; top: -1px; background-color: #f8f8f8; font-weight: bold; z-index: 1; }
+.log-table th, .log-table td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
+.log-table tr:hover { background-color: #f1f1f1; }
+.log-table td:nth-child(3) { word-break: break-word; line-height: 1.4; }
+.action-btn { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 5px; }
+.edit-btn { color: #007bff; } .delete-btn { color: #dc3545; }
+.log-table td:last-child { width: 60px; text-align: center; }
+
+/* --- Dashboard Styling --- */
+#dashboard-container { display: none; max-width: 1400px; margin: 0 auto; }
+.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }
+.chart-card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+.chart-card h3 { margin-top: 0; text-align: center; margin-bottom: 25px; flex-shrink: 0; }
+.chart-wrapper { margin: 0 auto; width: 100%; }
+
+.metrics-card { min-width: 0; }
+#key-metrics-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-content: space-evenly; height: 100%; }
+.metric-item { text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
+.metric-value { display: block; font-size: 2.2rem; font-weight: bold; color: #007bff; line-height: 1.1; }
+.metric-label { color: #6c757d; font-size: 0.9rem; }
