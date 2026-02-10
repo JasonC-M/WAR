@@ -1,9 +1,3 @@
-That's a fantastic idea. A "How-To" guide is essential for making an application user-friendly, and it's a sign of a mature project. Creating a `README.md` file is the standard and most effective way to do this.
-
-Based on all the features we've built and refined, here is a complete `README.md` file. It's written in a clear, non-technical way, perfect for an end-user. You can save this text into a file named `README.md` in your project folder, or you could create a new HTML page (e.g., `help.html`) and paste the content in.
-
----
-
 # WAR (Work Activity Report) - User Guide
 
 ## Introduction
@@ -74,5 +68,6 @@ This application uses your **browser's local storage** to save your log. Please 
 Use the **Export to File** button regularly!
 
 Clicking this button saves a complete backup of your entire log as a `work_log_backup.json` file to your computer. This is your permanent record. If you ever lose your browser data or move to a new computer, you can use the **Import from File** button to restore your log from this backup file.
+
 
 **Best Practice:** Export your log at the end of every week.
