@@ -2,22 +2,43 @@
  * PROJECT:        WAR (Work Activity Report)
  * FILE:           script.js
  * AUTHOR:         Jason Coster-Mullen (Original), Gemini Enterprise (Refactor)
- * VERSION:        7.0 (Stable Release)
+ * VERSION:        8.1 (Save As Dialog)
  * LAST MODIFIED:  2026-02-10
  * DESCRIPTION:
- *   The central JavaScript engine for the WAR application, responsible for:
- *   1. Full CRUD (Create, Read, Update, Delete) functionality for log
- *      entries using browser localStorage for data persistence.
- *   2. Dynamic UI logic, including form section visibility and the 'true
- *      toggle' for the primary header buttons.
- *   3. Data visualization via the locally-hosted Chart.js library.
- *   4. Client-side data filtering, searching, and AI prompt generation.
- *
- *   This stable version consolidates all refactored logic for a robust
- *   and self-contained user experience.
+ *   The central JavaScript engine for the WAR application. This version
+ *   enhances the export functionality to use the File System Access API
+ *   ('showSaveFilePicker') to trigger a "Save As..." dialog, providing a
+ *   fallback to the legacy download method for unsupported browsers.
  ******************************************************************************/
-
 document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DATA STRUCTURES ---
+    const jobCategories = {
+        "System Administrator": [
+            "Server Management",
+            "Scripting / Automation",
+            "Ticketing / Administrative",
+            "Projects / New Initiatives",
+            "Meetings / Collaboration",
+            "Other"
+        ],
+        "Network Management": [
+            "Firewall Configuration",
+            "Switch & Router Maintenance",
+            "VPN Troubleshooting",
+            "Network Monitoring",
+            "Cabling & Infrastructure",
+            "Other"
+        ],
+        "Cyber Management": [
+            "Vulnerability Scanning",
+            "Incident Response",
+            "Security Policy Review",
+            "Log Analysis & Auditing",
+            "User Training & Phishing Sims",
+            "Other"
+        ]
+    };
 
     // --- DOM ELEMENTS ---
     const loggerContainer = document.getElementById('logger-container');
@@ -26,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataWarning = document.querySelector('.data-warning');
     const formContainer = document.querySelector('.form-container');
     const logViewContainer = document.querySelector('.log-view-container');
-    // MODIFICATION: Get all the buttons that will be toggled
     const actionButtons = [
         document.getElementById('import-btn'),
         document.getElementById('export-btn'),
@@ -38,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logForm = document.getElementById('log-form');
     const logIdInput = document.getElementById('log-id');
     const logTypeSelector = document.getElementById('log-type-selector');
+    const jobModeSelector = document.getElementById('job-mode-selector');
     const formSections = document.querySelectorAll('.form-section');
     const logEntriesBody = document.getElementById('log-entries-body');
     const monthFilter = document.getElementById('month-filter');
@@ -63,7 +84,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricRequirementsEl = document.getElementById('metric-requirements');
     const metricNotesEl = document.getElementById('metric-notes');
 
-    // --- DYNAMIC HEIGHT ADJUSTMENT ---
+    // --- DYNAMIC LOGIC ---
+    function updateCategoryDropdown() {
+        const selectedJob = jobModeSelector.value;
+        const categories = jobCategories[selectedJob] || [];
+        taskCategorySelect.innerHTML = '';
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            taskCategorySelect.appendChild(option);
+        });
+        updateProjectFieldVisibility();
+        updateOtherCategoryVisibility();
+    }
+
     const adjustLogViewHeight = () => {
         requestAnimationFrame(() => {
             if (formContainer && logViewContainer && formContainer.offsetHeight > 0) {
@@ -133,23 +168,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleView() {
         const isDashboardVisible = dashboardContainer.style.display !== 'none';
         
-        // MODIFICATION: The correct, simplified logic
         if (isDashboardVisible) {
-            // Switch TO Log View
             dashboardContainer.style.display = 'none';
             loggerContainer.style.display = 'grid';
             dataWarning.classList.remove('hidden');
             toggleViewBtn.textContent = 'View Dashboard';
-            // Make the action buttons visible again
             actionButtons.forEach(btn => btn.classList.remove('ghost'));
             adjustLogViewHeight();
         } else {
-            // Switch TO Dashboard View
             dashboardContainer.style.display = 'block';
             loggerContainer.style.display = 'none';
             dataWarning.classList.add('hidden');
             toggleViewBtn.textContent = 'View Log';
-            // Make the action buttons invisible, but keep their space
             actionButtons.forEach(btn => btn.classList.add('ghost'));
             renderDashboard();
         }
@@ -168,17 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
         otherCategoryWrapper.style.display = isOther ? 'block' : 'none';
         if (!isOther) taskCategoryOtherInput.value = '';
         adjustLogViewHeight();
-    }
-
-    // --- FEATURE: Generic Dropdown Sorting ---
-    function sortDropdown(selectElement, keepAtEndValue = null) {
-        const options = Array.from(selectElement.options);
-        let specialOption = options.find(opt => opt.value === keepAtEndValue);
-        let sortableOptions = keepAtEndValue ? options.filter(opt => opt.value !== keepAtEndValue) : options;
-        sortableOptions.sort((a, b) => a.textContent.localeCompare(b.textContent));
-        selectElement.innerHTML = '';
-        sortableOptions.forEach(option => selectElement.add(option));
-        if (specialOption) selectElement.add(specialOption);
     }
     
     // --- FEATURE: AUTOCOMPLETE ---
@@ -232,8 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INITIALIZATION ---
     function initialize() {
         setupEventListeners();
-        sortDropdown(document.getElementById('task-category'), 'Other');
         updateFormVisibility();
+        updateCategoryDropdown();
         document.querySelectorAll('input[type="date"]').forEach(input => input.value = getLocalDateString());
         saveLogsAndRender(getLogs());
     }
@@ -242,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupEventListeners() {
         toggleViewBtn.addEventListener('click', toggleView);
         logTypeSelector.addEventListener('change', updateFormVisibility);
+        jobModeSelector.addEventListener('change', updateCategoryDropdown);
         taskCategorySelect.addEventListener('change', () => {
             updateProjectFieldVisibility();
             updateOtherCategoryVisibility();
@@ -278,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const type = logTypeSelector.value;
         let newEntry = { id: logIdInput.value || Date.now().toString(), type: type };
         if (type === 'task') {
+            newEntry.jobMode = jobModeSelector.value;
             newEntry.date = document.getElementById('task-date').value;
             newEntry.project = document.getElementById('task-project').value.trim();
             newEntry.status = document.getElementById('task-status').value;
@@ -399,15 +420,43 @@ document.addEventListener('DOMContentLoaded', () => {
         importFile.value = '';
     }
 
-    function handleExport() {
+    // MODIFICATION: Rewritten to use the modern File System Access API with a fallback
+    async function handleExport() {
         const logs = getLogs();
-        if (logs.length === 0) return alert('No logs to export.');
+        if (logs.length === 0) {
+            return alert('No logs to export.');
+        }
         const dataStr = JSON.stringify(logs, null, 2);
+        const suggestedName = `work_log_backup_${getLocalDateString()}.json`;
+
+        // Modern Method: "Save As" Dialog
+        if (window.showSaveFilePicker) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: suggestedName,
+                    types: [{
+                        description: 'JSON files',
+                        accept: { 'application/json': ['.json'] },
+                    }],
+                });
+                const writable = await handle.createWritable();
+                await writable.write(dataStr);
+                await writable.close();
+                return; // Exit function after successful save
+            } catch (err) {
+                // Silently ignore errors from user cancelling the save dialog
+                if (err.name === 'AbortError') {
+                    return;
+                }
+            }
+        }
+
+        // Fallback Method: Direct Download
         const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `work_log_backup_${getLocalDateString()}.json`;
+        a.download = suggestedName;
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -431,6 +480,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFormVisibility();
         logIdInput.value = logToEdit.id;
         if (logToEdit.type === 'task') {
+            jobModeSelector.value = logToEdit.jobMode || 'System Administrator';
+            updateCategoryDropdown();
             document.getElementById('task-date').value = logToEdit.date;
             document.getElementById('task-status').value = logToEdit.status;
             document.getElementById('task-project').value = logToEdit.project || '';
