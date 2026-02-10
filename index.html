@@ -3,18 +3,15 @@
   PROJECT:        WAR (Work Activity Report)
   FILE:           index.html
   AUTHOR:         Jason Coster-Mullen (Original), Gemini Enterprise (Refactor)
-  VERSION:        7.0 (Stable Release)
+  VERSION:        8.0 (Job Mode Feature)
   LAST MODIFIED:  2026-02-10
   DESCRIPTION:
   The definitive HTML structure for the Work Activity Report application.
-  This file defines all user-facing elements, including the dynamic input
-  form, the main data log table, and the dashboard visualization containers.
-  This stable version encapsulates a significant refactoring of the header
-  and control buttons and now references local JS dependencies for improved
-  security and offline functionality.
+  This version introduces a "Job Mode" selector to allow users to switch
+  between different roles, which dynamically updates the available task
+  categories.
 ==============================================================================
 -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,13 +19,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WAR (Work Activity Report)</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- local chart js    <script src="chart.js"></script>  -->
-
+    <script src="chart.js"></script>
 </head>
 <body>
     <div class="main-header">
-        <!-- MODIFICATION: All buttons are back in a single container for simple, stable alignment -->
         <div class="controls-group top-buttons">
             <button id="import-btn" title="Overwrite current log with data from a .json backup file.">Import from File</button>
             <input type="file" id="import-file" accept=".json" style="display: none;">
@@ -60,8 +54,16 @@
                     <option value="note">General Note / Question</option>
                 </select>
                 <div id="form-section-task" class="form-section">
+                    <!-- MODIFICATION: New Job Mode Dropdown -->
+                    <label for="job-mode-selector">Job Mode</label>
+                    <select id="job-mode-selector">
+                        <option>System Administrator</option>
+                        <option>Network Management</option>
+                        <option>Cyber Management</option>
+                    </select>
+
                     <label for="task-date">Date</label><input type="date" id="task-date">
-                    <label for="task-category">Category</label><select id="task-category"><option>Server Management</option><option>Scripting / Automation</option><option>Ticketing / Administrative</option><option>Projects / New Initiatives</option><option>Meetings / Collaboration</option><option>Other</option></select>
+                    <label for="task-category">Category</label><select id="task-category"></select> <!-- Options are now dynamically populated -->
                     <div id="other-category-wrapper" style="display: none;">
                         <label for="task-category-other">Specify Other Category</label>
                         <input type="text" id="task-category-other" placeholder="e.g., Emergency Patching">
