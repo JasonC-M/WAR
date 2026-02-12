@@ -1,0 +1,151 @@
+<!--
+==============================================================================
+  PROJECT:        WAR (Work Activity Report)
+  FILE:           index.html
+  AUTHOR:         Jason Coster-Mullen (Original), Gemini Enterprise (Refactor)
+  VERSION:        8.0 (Job Mode Feature)
+  LAST MODIFIED:  2026-02-10
+  DESCRIPTION:
+  The definitive HTML structure for the Work Activity Report application.
+  This version introduces a "Job Mode" selector to allow users to switch
+  between different roles, which dynamically updates the available task
+  categories.
+==============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAR (Work Activity Report)</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="chart.js"></script>
+</head>
+<body>
+    <div class="main-header">
+        <div class="controls-group top-buttons">
+            <button id="import-btn"></button>
+            <input type="file" id="import-file" accept=".json" style="display: none;">
+            <button id="export-btn"></button>
+            <button id="ai-report-btn"></button>
+            <button id="toggle-view-btn"></button>
+        </div>
+        <div class="data-warning">
+            <strong>Reminder:</strong> Your log is saved in the browser cache, which is volatile and can be cleared unexpectedly. Use the 'Export to File' button frequently to create a permanent backup.
+        </div>
+    </div>
+
+    <!-- Main content is correctly outside the header -->
+    <div id="logger-container" class="container">
+        <div class="form-container">
+            <h2>Log Your Work</h2>
+            <form id="log-form">
+                <input type="hidden" id="log-id">
+                <label for="log-type-selector"><strong>Log Entry Type:</strong></label>
+                <select id="log-type-selector"></select>
+                <div id="form-section-task" class="form-section">
+                    <label for="task-date">Date</label><input type="date" id="task-date">
+                    <label for="job-mode-selector">Job Mode</label><select id="job-mode-selector"></select>
+                    <label for="task-category">Category</label><select id="task-category"></select> <!-- Options are now dynamically populated -->
+                    <div id="other-category-wrapper" style="display: none;">
+                        <label for="task-category-other">Specify Other Category</label>
+                        <input type="text" id="task-category-other" placeholder="e.g., Emergency Patching">
+                    </div>
+                    <label for="task-status">Status</label><select id="task-status"></select>
+                    <div id="project-title-wrapper" style="display: none;">
+                        <label for="task-project">Project Title</label>
+                        <input type="text" id="task-project" placeholder="e.g., Q3 Network Upgrade">
+                    </div>
+                    <label for="task-description">Description <span class="info-tooltip" title="Be specific! Instead of 'Fixed server', write 'Resolved performance issues on SRV-01 by clearing temp files and rebooting.' Add the 'why' or 'so what'.">(?)</span></label>
+                    <textarea id="task-description" rows="4" placeholder="Example: Deployed new monitoring hardware to the primary server rack, improving real-time alerting capabilities."></textarea>
+                </div>
+                <div id="form-section-meeting" class="form-section">
+                    <label for="meeting-date">Date</label><input type="date" id="meeting-date">
+                    <label for="meeting-subject">Subject</label><input type="text" id="meeting-subject">
+                    <label for="meeting-attendees">Attendees</label><input type="text" id="meeting-attendees">
+                    <label for="meeting-duration">Duration</label><input type="text" id="meeting-duration" placeholder="e.g., 1 hr">
+                </div>
+                <div id="form-section-risk" class="form-section">
+                    <label for="risk-date">Date</label><input type="date" id="risk-date">
+                    <label for="risk-description">Risk Description</label><textarea id="risk-description" rows="3"></textarea>
+                    <label for="risk-probability">Probability</label><select id="risk-probability"></select>
+                    <label for="risk-impact">Impact</label><select id="risk-impact"></select>
+                    <label for="risk-mitigation">Mitigation Strategy</label><textarea id="risk-mitigation" rows="2"></textarea>
+                </div>
+                <div id="form-section-generic" class="form-section">
+                    <label for="generic-date">Date</label><input type="date" id="generic-date">
+                    <label for="generic-description">Details</label><textarea id="generic-description" rows="4"></textarea>
+                </div>
+                <button type="submit">Add / Update Log Entry</button>
+            </form>
+        </div>
+        <div class="log-view-container">
+            <div class="log-controls filter-header">
+                <h2>Logged Activities</h2>
+                <div class="filter-controls">
+                    <input type="text" id="search-input" list="search-suggestions" placeholder="Filter by keyword...">
+                    <datalist id="search-suggestions"></datalist>
+                    <select id="month-filter"></select>
+                    <button id="clear-month-btn" aria-label="Purge filtered results"></button>
+                </div>
+            </div>
+            <div id="drilldown-container" class="drilldown-container hidden">
+                <span id="drilldown-text"></span>
+                <button id="drilldown-clear-btn" type="button" aria-label="Clear drilldown filter">✕</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="log-table">
+                    <thead>
+                        <tr><th>Date</th><th>Type</th><th>Details</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="log-entries-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboard-container" style="display: none;">
+        <div class="dashboard-grid">
+            <div class="chart-card">
+                <h3>Tasks by Category</h3>
+                <div class="chart-wrapper">
+                    <canvas id="category-chart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card metrics-card">
+                <h3>Key Metrics (All Time)</h3>
+                <div id="key-metrics-container">
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-tasks">0</span>
+                        <span class="metric-label">Total Tasks</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-meetings">0</span>
+                        <span class="metric-label">Total Meetings</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-risks">0</span>
+                        <span class="metric-label">Risks Identified</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-accolades">0</span>
+                        <span class="metric-label">Client Accolades</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-requirements">0</span>
+                        <span class="metric-label">New Requirements</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-notes">0</span>
+                        <span class="metric-label">General Notes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.embed.js"></script>
+
+    <script src="script.js"></script>
+</body>
+</html>

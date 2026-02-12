@@ -1,0 +1,89 @@
+{
+    "jobModes": {
+        "System Administrator": [
+            "Server Management",
+            "Scripting / Automation",
+            "Ticketing / Administrative",
+            "Projects / New Initiatives",
+            "Meetings / Collaboration",
+            "Other"
+        ],
+        "Network Management": [
+            "Firewall Configuration",
+            "Switch & Router Maintenance",
+            "VPN Troubleshooting",
+            "Network Monitoring",
+            "Cabling & Infrastructure",
+            "Other"
+        ],
+        "Cyber Management": [
+            "Vulnerability Scanning",
+            "Incident Response",
+            "Security Policy Review",
+            "Log Analysis & Auditing",
+            "User Training & Phishing Sims",
+            "Other"
+        ]
+    },
+    "controls": {
+        "buttons": {
+            "import-btn": {
+                "text": "Import from File",
+                "title": "Overwrite current log with data from a .json backup file."
+            },
+            "export-btn": {
+                "text": "Export to File",
+                "title": "Save a permanent backup of the current log to a .json file."
+            },
+            "clear-month-btn": {
+                "text": "Purge Filtered Results",
+                "title": "DANGER: Deletes all currently visible (filtered) log entries from the browser cache."
+            },
+            "ai-report-btn": {
+                "text": "AI Report",
+                "title": "Auto mode: Filtered when searching, Monthly when viewing a month, Annual when viewing all months."
+            },
+            "toggle-view-btn": {
+                "text": "View Dashboard",
+                "title": "View a dashboard summary of your activities"
+            }
+        },
+        "selects": {
+            "log-type-selector": {
+                "defaultValue": "task",
+                "options": [
+                    { "value": "task", "text": "Work/Task Activity" },
+                    { "value": "meeting", "text": "Meeting" },
+                    { "value": "risk", "text": "Identified Risk" },
+                    { "value": "accolade", "text": "Client Accolade / Feedback" },
+                    { "value": "requirement", "text": "Emerging Requirement / Idea" },
+                    { "value": "note", "text": "General Note / Question" }
+                ]
+            },
+            "task-status": {
+                "defaultValue": "Completed",
+                "options": [
+                    { "value": "Completed", "text": "Completed" },
+                    { "value": "In Progress", "text": "In Progress" },
+                    { "value": "On Hold", "text": "On Hold" }
+                ]
+            },
+            "risk-probability": {
+                "defaultValue": "Low",
+                "options": [
+                    { "value": "Low", "text": "Low" },
+                    { "value": "Medium", "text": "Medium" },
+                    { "value": "High", "text": "High" }
+                ]
+            },
+            "risk-impact": {
+                "defaultValue": "Low",
+                "options": [
+                    { "value": "Low", "text": "Low" },
+                    { "value": "Medium", "text": "Medium" },
+                    { "value": "High", "text": "High" }
+                ]
+            }
+        }
+    }
+}
