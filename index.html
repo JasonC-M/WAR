@@ -24,14 +24,14 @@
 <body>
     <div class="main-header">
         <div class="controls-group top-buttons">
-            <button id="import-btn" title="Overwrite current log with data from a .json backup file.">Import from File</button>
+            <button id="import-btn"></button>
             <input type="file" id="import-file" accept=".json" style="display: none;">
-            <button id="export-btn" title="Save a permanent backup of the current log to a .json file.">Export to File</button>
-            <button id="clear-month-btn" title="DANGER: Deletes all log entries for the CURRENT MONTH from the browser cache.">Clear This Month's Log</button>
-            <button id="clear-all-btn" title="DANGER: Deletes ALL log entries from the browser cache.">Clear Entire Log</button>
-            <button id="generate-report-btn" title="Copies a prompt and this month's log data to your clipboard for an AI summary.">Create AI Monthly Summary Prompt</button>
-            <button id="generate-annual-report-btn" title="Copies a prompt and ALL log data to your clipboard for an annual review.">Create AI Annual Summary Prompt</button>
-            <button id="toggle-view-btn" title="View a dashboard summary of your activities">View Dashboard</button>
+            <button id="export-btn"></button>
+            <button id="clear-month-btn"></button>
+            <button id="clear-all-btn"></button>
+            <button id="generate-report-btn"></button>
+            <button id="generate-annual-report-btn"></button>
+            <button id="toggle-view-btn"></button>
         </div>
         <div class="data-warning">
             <strong>Reminder:</strong> Your log is saved in the browser cache, which is volatile and can be cleared unexpectedly. Use the 'Export to File' button frequently to create a permanent backup.
@@ -45,30 +45,16 @@
             <form id="log-form">
                 <input type="hidden" id="log-id">
                 <label for="log-type-selector"><strong>Log Entry Type:</strong></label>
-                <select id="log-type-selector">
-                    <option value="task" selected>Work/Task Activity</option>
-                    <option value="meeting">Meeting</option>
-                    <option value="risk">Identified Risk</option>
-                    <option value="accolade">Client Accolade / Feedback</option>
-                    <option value="requirement">Emerging Requirement / Idea</option>
-                    <option value="note">General Note / Question</option>
-                </select>
+                <select id="log-type-selector"></select>
                 <div id="form-section-task" class="form-section">
-                    <!-- MODIFICATION: New Job Mode Dropdown -->
-                    <label for="job-mode-selector">Job Mode</label>
-                    <select id="job-mode-selector">
-                        <option>System Administrator</option>
-                        <option>Network Management</option>
-                        <option>Cyber Management</option>
-                    </select>
-
                     <label for="task-date">Date</label><input type="date" id="task-date">
+                    <label for="job-mode-selector">Job Mode</label><select id="job-mode-selector"></select>
                     <label for="task-category">Category</label><select id="task-category"></select> <!-- Options are now dynamically populated -->
                     <div id="other-category-wrapper" style="display: none;">
                         <label for="task-category-other">Specify Other Category</label>
                         <input type="text" id="task-category-other" placeholder="e.g., Emergency Patching">
                     </div>
-                    <label for="task-status">Status</label><select id="task-status"><option>Completed</option><option>In Progress</option><option>On Hold</option></select>
+                    <label for="task-status">Status</label><select id="task-status"></select>
                     <div id="project-title-wrapper" style="display: none;">
                         <label for="task-project">Project Title</label>
                         <input type="text" id="task-project" placeholder="e.g., Q3 Network Upgrade">
@@ -85,8 +71,8 @@
                 <div id="form-section-risk" class="form-section">
                     <label for="risk-date">Date</label><input type="date" id="risk-date">
                     <label for="risk-description">Risk Description</label><textarea id="risk-description" rows="3"></textarea>
-                    <label for="risk-probability">Probability</label><select id="risk-probability"><option>Low</option><option>Medium</option><option>High</option></select>
-                    <label for="risk-impact">Impact</label><select id="risk-impact"><option>Low</option><option>Medium</option><option>High</option></select>
+                    <label for="risk-probability">Probability</label><select id="risk-probability"></select>
+                    <label for="risk-impact">Impact</label><select id="risk-impact"></select>
                     <label for="risk-mitigation">Mitigation Strategy</label><textarea id="risk-mitigation" rows="2"></textarea>
                 </div>
                 <div id="form-section-generic" class="form-section">

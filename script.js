@@ -11,34 +11,53 @@
  *   fallback to the legacy download method for unsupported browsers.
  ******************************************************************************/
 document.addEventListener('DOMContentLoaded', () => {
-
+    
     // --- DATA STRUCTURES ---
-    const jobCategories = {
-        "System Administrator": [
-            "Server Management",
-            "Scripting / Automation",
-            "Ticketing / Administrative",
-            "Projects / New Initiatives",
-            "Meetings / Collaboration",
-            "Other"
-        ],
-        "Network Management": [
-            "Firewall Configuration",
-            "Switch & Router Maintenance",
-            "VPN Troubleshooting",
-            "Network Monitoring",
-            "Cabling & Infrastructure",
-            "Other"
-        ],
-        "Cyber Management": [
-            "Vulnerability Scanning",
-            "Incident Response",
-            "Security Policy Review",
-            "Log Analysis & Auditing",
-            "User Training & Phishing Sims",
-            "Other"
-        ]
-    };
+    let config = {};
+
+    async function loadConfig() {
+        try {
+            const url = `./config.json?cacheBust=${Date.now()}`;
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} ${response.statusText} while loading ${url}`);
+            }
+            config = await response.json();
+        } catch (error) {
+            console.error('Error loading config.json:', error);
+            if (dataWarning) {
+                dataWarning.innerHTML = `<strong>Config load failed:</strong> ${String(error)}<br>Load this app via <code>http://</code> (not a <code>file://</code> path), and ensure <code>config.json</code> is reachable.`;
+            }
+        }
+    }
+
+    function applyControlConfig() {
+        const controls = config.controls || {};
+        const buttonConfig = controls.buttons || {};
+        Object.entries(buttonConfig).forEach(([id, meta]) => {
+            const button = document.getElementById(id);
+            if (!button) return;
+            if (typeof meta?.text === 'string') button.textContent = meta.text;
+            if (typeof meta?.title === 'string') button.title = meta.title;
+        });
+
+        const selectConfig = controls.selects || {};
+        Object.entries(selectConfig).forEach(([id, meta]) => {
+            const select = document.getElementById(id);
+            if (!select) return;
+            const options = Array.isArray(meta?.options) ? meta.options : [];
+            select.innerHTML = '';
+            options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text;
+                select.appendChild(option);
+            });
+            if (typeof meta?.defaultValue === 'string') {
+                select.value = meta.defaultValue;
+            }
+        });
+    }
 
     // --- DOM ELEMENTS ---
     const loggerContainer = document.getElementById('logger-container');
@@ -54,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('clear-all-btn'),
         document.getElementById('generate-report-btn'),
         document.getElementById('generate-annual-report-btn')
-    ];
+    ].filter(Boolean);
     const logForm = document.getElementById('log-form');
     const logIdInput = document.getElementById('log-id');
     const logTypeSelector = document.getElementById('log-type-selector');
@@ -85,9 +104,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricNotesEl = document.getElementById('metric-notes');
 
     // --- DYNAMIC LOGIC ---
+    function populateJobModes() {
+        if (!jobModeSelector) {
+            console.error('Missing required element: #job-mode-selector');
+            return;
+        }
+        const jobModes = Object.keys(config.jobModes || {});
+        jobModeSelector.innerHTML = '';
+        jobModes.forEach(mode => {
+            const option = document.createElement('option');
+            option.value = mode;
+            option.textContent = mode;
+            jobModeSelector.appendChild(option);
+        });
+    }
+
     function updateCategoryDropdown() {
-        const selectedJob = jobModeSelector.value;
-        const categories = jobCategories[selectedJob] || [];
+        const jobModes = config.jobModes || {};
+        const selectedJob = jobModeSelector ? jobModeSelector.value : '';
+        const categories = (selectedJob && jobModes[selectedJob]) ? jobModes[selectedJob] : [];
         taskCategorySelect.innerHTML = '';
         categories.forEach(category => {
             const option = document.createElement('option');
@@ -231,8 +266,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (retainSelection && monthFilter.querySelector(`option[value="${currentSelection}"]`)) {
             monthFilter.value = currentSelection;
         } else if (logs.length > 0) {
-            const mostRecentMonth = logs.sort((a,b) => new Date(b.date) - new Date(a.date))[0].date.substring(0, 7);
-            monthFilter.value = mostRecentMonth;
+            const logsWithDates = logs.filter(l => l && l.date);
+            if (logsWithDates.length > 0) {
+                const mostRecentMonth = logsWithDates
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+                    .date
+                    .substring(0, 7);
+                monthFilter.value = mostRecentMonth;
+            } else {
+                monthFilter.value = 'all';
+            }
         } else {
             monthFilter.value = 'all';
         }
@@ -249,7 +292,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- INITIALIZATION ---
-    function initialize() {
+    async function initialize() {
+        await loadConfig();
+        applyControlConfig();
+        populateJobModes();
         setupEventListeners();
         updateFormVisibility();
         updateCategoryDropdown();
@@ -257,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveLogsAndRender(getLogs());
     }
 
+    
     // --- SETUP EVENT LISTENERS ---
     function setupEventListeners() {
         toggleViewBtn.addEventListener('click', toggleView);
@@ -480,7 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFormVisibility();
         logIdInput.value = logToEdit.id;
         if (logToEdit.type === 'task') {
-            jobModeSelector.value = logToEdit.jobMode || 'System Administrator';
+            if (jobModeSelector) {
+                const jobModeKeys = Object.keys(config.jobModes || {});
+                jobModeSelector.value = logToEdit.jobMode || jobModeKeys[0] || '';
+            }
             updateCategoryDropdown();
             document.getElementById('task-date').value = logToEdit.date;
             document.getElementById('task-status').value = logToEdit.status;
