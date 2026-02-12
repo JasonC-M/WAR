@@ -16,6 +16,32 @@ Welcome to the Work Activity Report (WAR) tool! This is a simple, powerful, and 
 
 ## How to Use the Application
 
+## Running the App (Dev vs Offline)
+
+### Option A: Run with a local server (recommended)
+
+This app loads editable UI/config from `config.json` and `ai_config.json`, which browsers may block when opening `index.html` directly via `file://`.
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+Then open:
+
+- http://127.0.0.1:8000/index.html
+
+### Option B: Build an offline `dist/` (double-click friendly)
+
+Build a self-contained `dist/` folder that embeds `config.json` and `ai_config.json` into a generated `config.embed.js` (so it can run without fetching).
+
+```bash
+python3 tools/build_dist.py
+```
+
+Then open `dist/index.html` (or serve `dist/` the same way as Option A).
+
+Note: browser storage behavior can vary for `file://` pages; if you want the most consistent localStorage behavior, use Option A.
+
 ### 1. Logging an Activity (The Core Workflow)
 
 This is the primary function of the tool.
@@ -43,16 +69,14 @@ As you add entries, the table will grow.
 
 This tool's most powerful feature is its ability to prepare your data for an AI assistant (like Gemini, ChatGPT, etc.).
 
-*   **Create AI Monthly Summary Prompt:**
-    1.  Select the desired month from the filter dropdown.
-    2.  Click this button.
-    3.  A complete prompt, including instructions and all your log data for that month, is copied to your clipboard.
-    4.  Paste this directly into an AI chat window to get a professionally drafted report.
-
-*   **Create AI Annual Summary Prompt:**
-    1.  This button uses **all** of your log data, regardless of the month filter.
-    2.  Click it to copy a prompt designed to synthesize an entire year's worth of work into project-based summaries.
-    3.  Paste it into your AI assistant for a high-level annual review.
+*   **AI Report (Auto Mode):**
+    1.  Click **AI Report** in the top row.
+    2.  The app auto-selects mode from your current view:
+        * Search keyword present → **Filtered** mode (monthly prompt)
+        * Month selected, no search → **Entire Month** mode (monthly prompt)
+        * All months selected, no search → **Entire Year** mode (annual prompt)
+    3.  For **Entire Year**, the app uses the calendar year of your most recent log entry.
+    4.  The prompt templates are editable in `ai_config.json`.
 
 ---
 

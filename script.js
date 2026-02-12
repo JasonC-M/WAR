@@ -14,19 +14,41 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- DATA STRUCTURES ---
     let config = {};
+    let aiConfig = {};
 
     async function loadConfig() {
         try {
-            const url = `./config.json?cacheBust=${Date.now()}`;
-            const response = await fetch(url, { cache: 'no-store' });
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status} ${response.statusText} while loading ${url}`);
+            if (typeof window !== 'undefined' && window.WAR_CONFIG && typeof window.WAR_CONFIG === 'object') {
+                config = window.WAR_CONFIG;
             }
-            config = await response.json();
+
+            if (typeof window !== 'undefined' && window.WAR_AI_CONFIG && typeof window.WAR_AI_CONFIG === 'object') {
+                aiConfig = window.WAR_AI_CONFIG;
+            }
+
+            const cacheBust = Date.now();
+
+            if (!Object.keys(config).length) {
+                const configUrl = `./config.json?cacheBust=${cacheBust}`;
+                const response = await fetch(configUrl, { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText} while loading ${configUrl}`);
+                }
+                config = await response.json();
+            }
+
+            if (!Object.keys(aiConfig).length) {
+                const aiConfigUrl = `./ai_config.json?cacheBust=${cacheBust}`;
+                const aiResponse = await fetch(aiConfigUrl, { cache: 'no-store' });
+                if (!aiResponse.ok) {
+                    throw new Error(`HTTP ${aiResponse.status} ${aiResponse.statusText} while loading ${aiConfigUrl}`);
+                }
+                aiConfig = await aiResponse.json();
+            }
         } catch (error) {
-            console.error('Error loading config.json:', error);
+            console.error('Error loading config files:', error);
             if (dataWarning) {
-                dataWarning.innerHTML = `<strong>Config load failed:</strong> ${String(error)}<br>Load this app via <code>http://</code> (not a <code>file://</code> path), and ensure <code>config.json</code> is reachable.`;
+                dataWarning.innerHTML = `<strong>Config load failed:</strong> ${String(error)}<br>Load this app via <code>http://</code> (not a <code>file://</code> path), and ensure <code>config.json</code> and <code>ai_config.json</code> are reachable.`;
             }
         }
     }
@@ -69,10 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const actionButtons = [
         document.getElementById('import-btn'),
         document.getElementById('export-btn'),
-        document.getElementById('clear-month-btn'),
-        document.getElementById('clear-all-btn'),
-        document.getElementById('generate-report-btn'),
-        document.getElementById('generate-annual-report-btn')
+        document.getElementById('ai-report-btn')
     ].filter(Boolean);
     const logForm = document.getElementById('log-form');
     const logIdInput = document.getElementById('log-id');
@@ -84,10 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const importBtn = document.getElementById('import-btn');
     const importFile = document.getElementById('import-file');
     const exportBtn = document.getElementById('export-btn');
-    const generateReportBtn = document.getElementById('generate-report-btn');
-    const generateAnnualReportBtn = document.getElementById('generate-annual-report-btn');
+    const aiReportBtn = document.getElementById('ai-report-btn');
     const clearMonthBtn = document.getElementById('clear-month-btn');
-    const clearAllBtn = document.getElementById('clear-all-btn');
     const taskCategorySelect = document.getElementById('task-category');
     const projectTitleWrapper = document.getElementById('project-title-wrapper');
     const taskProjectInput = document.getElementById('task-project');
@@ -95,6 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskCategoryOtherInput = document.getElementById('task-category-other');
     const searchInput = document.getElementById('search-input');
     const searchSuggestions = document.getElementById('search-suggestions');
+    const drilldownContainer = document.getElementById('drilldown-container');
+    const drilldownText = document.getElementById('drilldown-text');
+    const drilldownClearBtn = document.getElementById('drilldown-clear-btn');
     let categoryChart = null;
     const metricTasksEl = document.getElementById('metric-tasks');
     const metricMeetingsEl = document.getElementById('metric-meetings');
@@ -102,6 +122,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricAccoladesEl = document.getElementById('metric-accolades');
     const metricRequirementsEl = document.getElementById('metric-requirements');
     const metricNotesEl = document.getElementById('metric-notes');
+
+    let activeDrilldown = {
+        type: null,
+        category: null,
+    };
 
     // --- DYNAMIC LOGIC ---
     function populateJobModes() {
@@ -150,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCategoryChart() {
-        const logs = getLogs();
+        const logs = filterLogsByPeriod(getLogs(), monthFilter.value);
         const categoryCounts = logs.reduce((acc, log) => {
             if (log.type === 'task' && log.category) {
                 acc[log.category] = (acc[log.category] || 0) + 1;
@@ -179,13 +204,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                onClick: (event, elements) => {
+                    if (!elements || elements.length === 0) return;
+                    const elementIndex = elements[0].index;
+                    const clickedCategory = chartData.labels[elementIndex];
+                    if (!clickedCategory) return;
+                    setDrilldown({ type: 'task', category: clickedCategory });
+                    if (dashboardContainer.style.display !== 'none') toggleView();
+                }
             },
         });
     }
     
     function renderKeyMetrics() {
-        const allLogs = getLogs();
+        const allLogs = filterLogsByPeriod(getLogs(), monthFilter.value);
         const counts = allLogs.reduce((acc, log) => {
             acc[log.type] = (acc[log.type] || 0) + 1;
             return acc;
@@ -234,15 +267,60 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isOther) taskCategoryOtherInput.value = '';
         adjustLogViewHeight();
     }
+
+    function normalizeSearchText(value) {
+        return String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function tokenizeForSearch(value) {
+        return normalizeSearchText(value)
+            .split(/[^\p{L}\p{N}]+/u)
+            .filter(Boolean);
+    }
+
+    function getLogsForLast365Days(logs = getLogs()) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const cutoff = new Date(today);
+        cutoff.setDate(cutoff.getDate() - 365);
+
+        return logs.filter(log => {
+            if (!log.date) return false;
+            const logDate = new Date(`${log.date}T00:00:00`);
+            return logDate >= cutoff && logDate <= today;
+        });
+    }
+
+    function filterLogsByPeriod(logs, periodSelection) {
+        if (periodSelection === 'rolling365') {
+            return getLogsForLast365Days(logs);
+        }
+
+        if (/^\d{4}-\d{2}$/.test(periodSelection)) {
+            return logs.filter(log => log.date && log.date.startsWith(periodSelection));
+        }
+
+        if (/^\d{4}$/.test(periodSelection)) {
+            return logs.filter(log => log.date && log.date.startsWith(`${periodSelection}-`));
+        }
+
+        return logs;
+    }
     
     // --- FEATURE: AUTOCOMPLETE ---
     function populateAutocomplete() {
         const allLogs = getLogs();
+        const selectedMonth = monthFilter.value;
+        const logsForSuggestions = filterLogsByPeriod(allLogs, selectedMonth);
         const wordSet = new Set();
         const commonWords = new Set(['a', 'an', 'the', 'in', 'on', 'for', 'and', 'with', 'to', 'of', 'is', 'it', 'was', 'were']);
-        allLogs.forEach(log => {
+        logsForSuggestions.forEach(log => {
             const textCorpus = [ log.description, log.project, log.category, log.subject, log.mitigation ].join(' ');
-            textCorpus.toLowerCase().split(/[\s,.\-()\[\]/]+/).forEach(word => {
+            tokenizeForSearch(textCorpus).forEach(word => {
                 if (word && word.length > 2 && !commonWords.has(word) && isNaN(word)) {
                     wordSet.add(word);
                 }
@@ -262,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('warSmartLog', JSON.stringify(logs));
         const currentSelection = monthFilter.value;
         populateMonthFilter();
-        populateAutocomplete();
         if (retainSelection && monthFilter.querySelector(`option[value="${currentSelection}"]`)) {
             monthFilter.value = currentSelection;
         } else if (logs.length > 0) {
@@ -279,7 +356,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             monthFilter.value = 'all';
         }
+        populateAutocomplete();
         renderLogs();
+        updateAiButtonContext();
         adjustLogViewHeight();
     };
 
@@ -317,13 +396,44 @@ document.addEventListener('DOMContentLoaded', () => {
         importBtn.addEventListener('click', () => importFile.click());
         importFile.addEventListener('change', handleImport);
         exportBtn.addEventListener('click', handleExport);
-        clearAllBtn.addEventListener('click', clearAllLogs);
-        clearMonthBtn.addEventListener('click', clearMonthLogs);
-        monthFilter.addEventListener('change', renderLogs);
-        generateReportBtn.addEventListener('click', handleGenerateReport);
-        generateAnnualReportBtn.addEventListener('click', handleGenerateAnnualReport);
+        clearMonthBtn.addEventListener('click', clearCurrentViewLogs);
+        if (drilldownClearBtn) drilldownClearBtn.addEventListener('click', clearDrilldown);
+        monthFilter.addEventListener('change', () => {
+            populateAutocomplete();
+            renderLogs();
+            updateAiButtonContext();
+            renderDrilldownChip();
+        });
+        if (aiReportBtn) aiReportBtn.addEventListener('click', handleGenerateAiReport);
         window.addEventListener('resize', adjustLogViewHeight);
-        searchInput.addEventListener('input', renderLogs);
+        const handleSearchUpdate = () => {
+            renderLogs();
+            updateAiButtonContext();
+            renderDrilldownChip();
+        };
+        searchInput.addEventListener('input', handleSearchUpdate);
+        searchInput.addEventListener('change', handleSearchUpdate);
+
+        const metricMap = {
+            'metric-tasks': 'task',
+            'metric-meetings': 'meeting',
+            'metric-risks': 'risk',
+            'metric-accolades': 'accolade',
+            'metric-requirements': 'requirement',
+            'metric-notes': 'note'
+        };
+
+        Object.entries(metricMap).forEach(([metricId, logType]) => {
+            const metricEl = document.getElementById(metricId);
+            if (!metricEl) return;
+            const tile = metricEl.closest('.metric-item') || metricEl;
+            tile.style.cursor = 'pointer';
+            tile.title = `Show ${logType} entries`;
+            tile.addEventListener('click', () => {
+                setDrilldown({ type: logType, category: null });
+                if (dashboardContainer.style.display !== 'none') toggleView();
+            });
+        });
     }
 
     // --- DYNAMIC FORM VISIBILITY ---
@@ -384,34 +494,190 @@ document.addEventListener('DOMContentLoaded', () => {
     function getFilteredLogs() {
         const allLogs = getLogs();
         const selectedMonth = monthFilter.value;
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const monthFilteredLogs = (selectedMonth && selectedMonth !== 'all') ? allLogs.filter(log => log.date && log.date.startsWith(selectedMonth)) : allLogs;
-        if (!searchTerm) { return monthFilteredLogs; }
-        return monthFilteredLogs.filter(log => {
-            const searchableContent = [ log.description, log.project, log.category, log.status, log.subject, log.attendees, log.mitigation ].join(' ').toLowerCase();
-            return searchableContent.includes(searchTerm);
+        const searchTokens = tokenizeForSearch(searchInput.value);
+        const monthFilteredLogs = filterLogsByPeriod(allLogs, selectedMonth);
+        const drilldownFiltered = monthFilteredLogs.filter(log => {
+            if (activeDrilldown.type && log.type !== activeDrilldown.type) return false;
+            if (activeDrilldown.category && log.category !== activeDrilldown.category) return false;
+            return true;
         });
+
+        if (searchTokens.length === 0) { return drilldownFiltered; }
+
+        return drilldownFiltered.filter(log => {
+            const searchableContent = [log.description, log.project, log.category, log.status, log.subject, log.attendees, log.mitigation].join(' ');
+            const logTokens = new Set(tokenizeForSearch(searchableContent));
+            return searchTokens.every(token => logTokens.has(token));
+        });
+    }
+
+    function renderDrilldownChip() {
+        if (!drilldownContainer || !drilldownText) return;
+        const parts = [];
+        if (activeDrilldown.type) {
+            parts.push(`Type: ${activeDrilldown.type.charAt(0).toUpperCase() + activeDrilldown.type.slice(1)}`);
+        }
+        if (activeDrilldown.category) {
+            parts.push(`Category: ${activeDrilldown.category}`);
+        }
+
+        if (parts.length === 0) {
+            drilldownContainer.classList.add('hidden');
+            drilldownText.textContent = '';
+            return;
+        }
+
+        drilldownText.textContent = `Drilldown active — ${parts.join(' • ')}`;
+        drilldownContainer.classList.remove('hidden');
+    }
+
+    function setDrilldown(next) {
+        activeDrilldown = {
+            type: next?.type ?? null,
+            category: next?.category ?? null,
+        };
+        renderDrilldownChip();
+        renderLogs();
+        updateAiButtonContext();
+    }
+
+    function clearDrilldown() {
+        setDrilldown({ type: null, category: null });
     }
 
     function getLogsForReport() {
         const allLogs = getLogs();
         const selectedMonth = monthFilter.value;
-        return (selectedMonth && selectedMonth !== 'all') ? allLogs.filter(log => log.date && log.date.startsWith(selectedMonth)) : allLogs;
+        return filterLogsByPeriod(allLogs, selectedMonth);
+    }
+
+    function getLogsForSelectedYear() {
+        const allLogs = getLogs().filter(log => log.date);
+        if (allLogs.length === 0) return [];
+
+        const selectedMonth = monthFilter.value;
+        let targetYear = '';
+
+        if (selectedMonth && selectedMonth !== 'all') {
+            [targetYear] = selectedMonth.split('-');
+        } else {
+            const latestDate = allLogs.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date;
+            [targetYear] = latestDate.split('-');
+        }
+
+        return allLogs.filter(log => log.date && log.date.startsWith(`${targetYear}-`));
+    }
+
+    function getLogsForAiScope(scope) {
+        if (scope === 'month') return getLogsForReport();
+        if (scope === 'year') return getLogsForSelectedYear();
+        if (scope === 'rolling365') return getLogsForLast365Days();
+        return getFilteredLogs();
+    }
+
+    function detectAiModeFromView() {
+        const hasSearchFilter = Boolean(searchInput.value.toLowerCase().trim());
+        if (hasSearchFilter) {
+            return {
+                key: 'filtered',
+                label: 'Filtered View',
+                scope: 'filtered',
+                template: 'monthly'
+            };
+        }
+
+        if (monthFilter.value === 'all') {
+            return {
+                key: 'allmonths',
+                label: 'All Months',
+                scope: 'filtered',
+                template: 'resume'
+            };
+        }
+
+        if (/^\d{4}-\d{2}$/.test(monthFilter.value)) {
+            return {
+                key: 'month',
+                label: 'Entire Month',
+                scope: 'month',
+                template: 'monthly'
+            };
+        }
+
+        if (/^\d{4}$/.test(monthFilter.value)) {
+            return {
+                key: 'year',
+                label: 'Entire Year',
+                scope: 'year',
+                template: 'annual'
+            };
+        }
+
+        if (monthFilter.value === 'rolling365') {
+            return {
+                key: 'rolling365',
+                label: 'Last 365 Days',
+                scope: 'rolling365',
+                template: 'annual'
+            };
+        }
+
+        return {
+            key: 'year',
+            label: 'Entire Year',
+            scope: 'year',
+            template: 'annual'
+        };
+    }
+
+    function updateAiButtonContext() {
+        if (!aiReportBtn) return;
+        const mode = detectAiModeFromView();
+        const logs = getLogsForAiScope(mode.scope);
+        const modeTextByKey = {
+            filtered: 'Filtered',
+            month: 'Monthly',
+            year: 'Annual',
+            rolling365: 'Annual',
+            allmonths: 'Resume'
+        };
+        const modeText = modeTextByKey[mode.key] || mode.key;
+        aiReportBtn.textContent = `AI Report (${modeText})`;
+        aiReportBtn.title = `AI mode: ${mode.label} (${logs.length} entr${logs.length === 1 ? 'y' : 'ies'})`;
     }
 
     function populateMonthFilter() {
         const logs = getLogs();
         const uniqueMonths = [...new Set(logs.map(log => log.date ? log.date.substring(0, 7) : null).filter(Boolean))];
-        uniqueMonths.sort().reverse();
+        const uniqueYears = [...new Set(uniqueMonths.map(monthStr => monthStr.substring(0, 4)))];
+
+        uniqueYears.sort((a, b) => Number(a) - Number(b));
+        uniqueMonths.sort();
+
         const currentSelection = monthFilter.value;
         monthFilter.innerHTML = '<option value="all">All Months</option>';
+        monthFilter.add(new Option('Last 365 Days', 'rolling365'));
+
+        uniqueYears.forEach(yearStr => {
+            const option = new Option(yearStr, yearStr);
+            monthFilter.add(option);
+        });
+
         uniqueMonths.forEach(monthStr => {
             const [year, month] = monthStr.split('-');
             const date = new Date(year, month - 1);
             const option = new Option(date.toLocaleString('default', { month: 'long', year: 'numeric' }), monthStr);
             monthFilter.add(option);
         });
-        if(uniqueMonths.includes(currentSelection)) monthFilter.value = currentSelection;
+
+        const isValidSelection = currentSelection === 'all'
+            || currentSelection === 'rolling365'
+            || uniqueYears.includes(currentSelection)
+            || uniqueMonths.includes(currentSelection);
+
+        if (isValidSelection) {
+            monthFilter.value = currentSelection;
+        }
     }
     
     function renderLogs() {
@@ -508,13 +774,17 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     }
 
-    function clearAllLogs() { if (confirm('DANGER: This will delete the entire log. Are you absolutely sure?')) saveLogsAndRender([]); }
-    function clearMonthLogs() {
-        const selectedMonth = monthFilter.value;
-        if (!selectedMonth || selectedMonth === 'all') return alert("Please select a specific month to clear.");
-        if (confirm(`This will delete all log entries for the selected month. Are you sure?`)) {
-            const otherLogs = getLogs().filter(log => !log.date || !log.date.startsWith(selectedMonth));
-            saveLogsAndRender(otherLogs, false);
+    function clearCurrentViewLogs() {
+        const visibleLogs = getFilteredLogs();
+        if (visibleLogs.length === 0) {
+            alert('There are no currently visible entries to delete.');
+            return;
+        }
+
+        if (confirm(`This will delete ${visibleLogs.length} currently visible log entr${visibleLogs.length === 1 ? 'y' : 'ies'}. Are you sure?`)) {
+            const visibleIds = new Set(visibleLogs.map(log => log.id));
+            const remainingLogs = getLogs().filter(log => !visibleIds.has(log.id));
+            saveLogsAndRender(remainingLogs, true);
         }
     }
     
@@ -587,59 +857,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('\n');
     }
 
-    function handleGenerateReport() {
-        const logs = getLogsForReport();
-        if (logs.length === 0) {
-            alert("No logs for the selected month to generate a summary.");
-            return;
+    function getPromptTemplate(templateType) {
+        const prompts = aiConfig.prompts || {};
+        const selectedPrompt = prompts[templateType];
+        if (Array.isArray(selectedPrompt)) {
+            return selectedPrompt.join('\n');
         }
-        const aiPrompt = `
-You are an expert AI assistant tasked with drafting a professional monthly work report for a supervisor. Your primary function is to analyze the provided raw log data, identify the most significant accomplishments, and distinguish them from routine tasks.
+        return typeof selectedPrompt === 'string' ? selectedPrompt : '';
+    }
 
-Analyze the log data and generate a summary formatted EXACTLY according to the structure below. Follow these critical instructions:
-
-1.  **Prioritize Accomplishments:** From the "WORK COMPLETED" section, identify the 3-5 most significant achievements based on their described impact, scope, and the action verbs used. Give each of these major achievements its own clear, concise bullet point.
-
-2.  **Summarize Routine Tasks:** Group all other less significant or routine tasks (e.g., closing multiple low-level tickets) into a single, summary bullet point. For example, "Completed numerous routine administrative tasks, including resolving 15 support tickets and performing daily system health checks."
-
-3.  **Synthesize, Don't List:** Do not simply list the raw log entries. Synthesize and rephrase them in a professional tone.
-
-### WORK PLANNED FOR THE MONTH:
-(Summarize any 'planning' entries relevant to this month.)
-
-### WORK COMPLETED DURING THE MONTH:
-(Apply the prioritization and summarization rules described above.)
-
-### WORK NOT COMPLETED DURING THE MONTH:
-(List all 'In Progress' or 'On Hold' tasks and their current status.)
-
-### WORK PLANNED FOR NEXT MONTH:
-(Summarize any 'planning' entries relevant to next month.)
-
-### CONTRACT MEETINGS:
-(List all 'meeting' entries in a clear, bulleted format.)
-
-### CLIENT ACCOLADES:
-(List all 'accolade' entries.)
-
-### POTENTIAL EMERGING REQUIREMENTS:
-(List all 'requirement' entries.)
-
-### ISSUES/QUESTIONS/RECOMMENDATIONS:
-(List all 'note' or 'issue' entries.)
-
-### RISKS:
-(List all 'risk' entries, including their probability, impact, and mitigation.)
-`;
-        const formattedLogData = formatLogsForAI(logs);
-        const fullTextToCopy = `AI PROMPT:\n${aiPrompt}\n\n--- RAW LOG DATA ---\n${formattedLogData}`;
+    function copyAiPromptToClipboard(fullTextToCopy, sourceLogsCount) {
         navigator.clipboard.writeText(fullTextToCopy).then(() => {
-            const originalText = generateReportBtn.textContent;
-            generateReportBtn.textContent = 'Copied to Clipboard!';
-            generateReportBtn.style.backgroundColor = '#28a745';
+            const originalText = aiReportBtn.textContent;
+            aiReportBtn.textContent = `Copied (${sourceLogsCount})`;
+            aiReportBtn.style.backgroundColor = '#28a745';
             setTimeout(() => {
-                generateReportBtn.textContent = originalText;
-                generateReportBtn.style.backgroundColor = '#007bff';
+                aiReportBtn.textContent = originalText;
+                aiReportBtn.style.backgroundColor = '#007bff';
             }, 2500);
         }).catch(err => {
             alert('Failed to copy summary. See console for details.');
@@ -647,68 +881,31 @@ Analyze the log data and generate a summary formatted EXACTLY according to the s
         });
     }
 
-    function handleGenerateAnnualReport() {
-        const logs = getLogs();
+    function handleGenerateAiReport() {
+        const selectedMode = detectAiModeFromView();
+        const scope = selectedMode.scope;
+        const template = selectedMode.template;
+        const logs = getLogsForAiScope(scope);
+
         if (logs.length === 0) {
-            alert("There are no logs to generate an annual report from.");
+            alert('No logs available for the selected AI scope.');
             return;
         }
-        const aiPrompt = `
-You are an expert AI assistant tasked with drafting a high-level professional annual review. Your primary function is to analyze the provided raw log data, identify distinct projects or initiatives, and summarize them into the specific format below.
 
-Analyze the entire set of log data and follow these critical instructions:
-
-1.  **Identify & Group Projects:** Scan all log entries and group them into logical projects based on recurring keywords or themes in their descriptions (e.g., group all tasks related to 'onboarding', 'inventory script', 'server decommission', etc., together).
-
-2.  **Create One Report Block Per Project:** For each project group you identify, create a complete report block using the "Summary, Timeline, Lead..." format.
-
-3.  **Synthesize, Don't List:** Do not simply list the raw log entries. Synthesize the information from multiple entries into a coherent narrative, especially for the "Notable Achievements" and "Impact" sections.
-
-4.  **Infer Timelines:** For each project, determine the start and end dates by finding the earliest and latest log entry dates within that group.
-
-5.  **Use Placeholders for Missing Data:** Since the log data does not contain information on project leads or collaborators, you MUST insert the placeholders '[Specify Lead]' and '[List Collaborators]' in the appropriate fields for the user to fill in manually.
-
-6.  **Attempt to Infer Impact:** For the "Impact" section, analyze the task descriptions for keywords related to outcomes, results, or benefits (e.g., "improved," "resolved," "reduced," "enabled"). If no impact is stated, write '[Describe the impact or benefit of this project]'.
-
----
-
-**EXAMPLE OUTPUT STRUCTURE (Repeat for each identified project):**
-
-**Project Name:** [AI-identified Project Title]
-
-**Summary:** [Create a 1-2 sentence executive summary of the project's goal and outcome.]
-
-**Timeline:** [Earliest Date in Group] - [Latest Date in Group]
-
-**Lead:** [Specify Lead]
-
-**Collaborated With:** [List Collaborators]
-
-**Notable Achievements:**
-
-* [Synthesize related task descriptions into a detailed, narrative bullet point explaining what was done and why.]
-* [Create another bullet point for other major achievements within this project.]
-
-**Impact:**
-
-* [Synthesize descriptions that mention outcomes or benefits into a narrative explaining the positive results of this project. Use the placeholder if no impact is found.]
-
----
-`;
+        const aiPrompt = getPromptTemplate(template);
+        if (!aiPrompt) {
+            alert(`Missing AI prompt template for '${template}'. Check ai_config.json.`);
+            return;
+        }
         const formattedLogData = formatLogsForAI(logs);
-        const fullTextToCopy = `AI PROMPT (Annual Review):\n${aiPrompt}\n\n--- RAW LOG DATA (All Entries) ---\n${formattedLogData}`;
-        navigator.clipboard.writeText(fullTextToCopy).then(() => {
-            const originalText = generateAnnualReportBtn.textContent;
-            generateAnnualReportBtn.textContent = 'Copied!';
-            generateAnnualReportBtn.style.backgroundColor = '#28a745';
-            setTimeout(() => {
-                generateAnnualReportBtn.textContent = originalText;
-                generateAnnualReportBtn.style.backgroundColor = '#17a2b8';
-            }, 2500);
-        }).catch(err => {
-            alert('Failed to copy annual summary. See console for details.');
-            console.error(err);
-        });
+        const templateLabelMap = {
+            monthly: 'Monthly Summary',
+            annual: 'Annual Review',
+            resume: 'Resume Builder'
+        };
+        const templateLabel = templateLabelMap[template] || template;
+        const fullTextToCopy = `AI PROMPT (${templateLabel} - ${selectedMode.label}):\n${aiPrompt}\n\n--- RAW LOG DATA ---\n${formattedLogData}`;
+        copyAiPromptToClipboard(fullTextToCopy, logs.length);
     }
 
     // --- RUN APPLICATION ---

@@ -36,20 +36,12 @@
                 "title": "Save a permanent backup of the current log to a .json file."
             },
             "clear-month-btn": {
-                "text": "Clear This Month's Log",
-                "title": "DANGER: Deletes all log entries for the CURRENT MONTH from the browser cache."
+                "text": "Purge Filtered Results",
+                "title": "DANGER: Deletes all currently visible (filtered) log entries from the browser cache."
             },
-            "clear-all-btn": {
-                "text": "Clear Entire Log",
-                "title": "DANGER: Deletes ALL log entries from the browser cache."
-            },
-            "generate-report-btn": {
-                "text": "Create AI Monthly Summary Prompt",
-                "title": "Copies a prompt and this month's log data to your clipboard for an AI summary."
-            },
-            "generate-annual-report-btn": {
-                "text": "Create AI Annual Summary Prompt",
-                "title": "Copies a prompt and ALL log data to your clipboard for an annual review."
+            "ai-report-btn": {
+                "text": "AI Report",
+                "title": "Auto mode: Filtered when searching, Monthly when viewing a month, Annual when viewing all months."
             },
             "toggle-view-btn": {
                 "text": "View Dashboard",

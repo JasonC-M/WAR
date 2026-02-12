@@ -27,10 +27,7 @@
             <button id="import-btn"></button>
             <input type="file" id="import-file" accept=".json" style="display: none;">
             <button id="export-btn"></button>
-            <button id="clear-month-btn"></button>
-            <button id="clear-all-btn"></button>
-            <button id="generate-report-btn"></button>
-            <button id="generate-annual-report-btn"></button>
+            <button id="ai-report-btn"></button>
             <button id="toggle-view-btn"></button>
         </div>
         <div class="data-warning">
@@ -89,7 +86,12 @@
                     <input type="text" id="search-input" list="search-suggestions" placeholder="Filter by keyword...">
                     <datalist id="search-suggestions"></datalist>
                     <select id="month-filter"></select>
+                    <button id="clear-month-btn" aria-label="Purge filtered results"></button>
                 </div>
+            </div>
+            <div id="drilldown-container" class="drilldown-container hidden">
+                <span id="drilldown-text"></span>
+                <button id="drilldown-clear-btn" type="button" aria-label="Clear drilldown filter">✕</button>
             </div>
             <div class="table-wrapper">
                 <table class="log-table">
