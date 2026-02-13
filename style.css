@@ -125,3 +125,40 @@ button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14p
 .metric-item { text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
 .metric-value { display: block; font-size: 2.2rem; font-weight: bold; color: #007bff; line-height: 1.1; }
 .metric-label { color: #6c757d; font-size: 0.9rem; }
+
+.log-table .status-open {
+    color: #dc3545 !important;
+    font-weight: 700;
+}
+
+.log-table .status-completed {
+    color: #28a745 !important;
+    font-weight: 700;
+}
+
+.log-table .task-title-completed {
+    color: #28a745;
+}
+
+.save-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 2000;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background-color: #28a745;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.save-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}

@@ -105,6 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportBtn = document.getElementById('export-btn');
     const aiReportBtn = document.getElementById('ai-report-btn');
     const clearMonthBtn = document.getElementById('clear-month-btn');
+    const taskDateInput = document.getElementById('task-date');
+    const taskCompletedDateInput = document.getElementById('task-completed-date');
+    const taskCompletedDateWrapper = document.getElementById('task-completed-date-wrapper');
     const taskCategorySelect = document.getElementById('task-category');
     const projectTitleWrapper = document.getElementById('project-title-wrapper');
     const taskProjectInput = document.getElementById('task-project');
@@ -122,11 +125,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricAccoladesEl = document.getElementById('metric-accolades');
     const metricRequirementsEl = document.getElementById('metric-requirements');
     const metricNotesEl = document.getElementById('metric-notes');
+    const metricInProgressEl = document.getElementById('metric-in-progress');
+    const metricOnHoldEl = document.getElementById('metric-on-hold');
 
     let activeDrilldown = {
         type: null,
         category: null,
+        status: null,
     };
+    let saveToastTimer = null;
 
     // --- DYNAMIC LOGIC ---
     function populateJobModes() {
@@ -223,6 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
             acc[log.type] = (acc[log.type] || 0) + 1;
             return acc;
         }, {});
+        const inProgressCount = allLogs.filter(log => log.type === 'task' && log.status === 'In Progress').length;
+        const onHoldCount = allLogs.filter(log => log.type === 'task' && log.status === 'On Hold').length;
 
         metricTasksEl.textContent = counts.task || 0;
         metricMeetingsEl.textContent = counts.meeting || 0;
@@ -230,6 +239,8 @@ document.addEventListener('DOMContentLoaded', () => {
         metricAccoladesEl.textContent = counts.accolade || 0;
         metricRequirementsEl.textContent = counts.requirement || 0;
         metricNotesEl.textContent = counts.note || 0;
+        if (metricInProgressEl) metricInProgressEl.textContent = inProgressCount;
+        if (metricOnHoldEl) metricOnHoldEl.textContent = onHoldCount;
     }
 
     // --- FEATURE: View Toggling ---
@@ -293,6 +304,45 @@ document.addEventListener('DOMContentLoaded', () => {
             const logDate = new Date(`${log.date}T00:00:00`);
             return logDate >= cutoff && logDate <= today;
         });
+    }
+
+    function getElapsedDays(startDateStr, endDateStr = getLocalDateString()) {
+        if (!startDateStr) return null;
+        const start = new Date(`${startDateStr}T00:00:00`);
+        const end = new Date(`${endDateStr}T00:00:00`);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const days = Math.floor((end - start) / msPerDay);
+        return Math.max(0, days);
+    }
+
+    function stripOpenMarkerFromDescription(value) {
+        return String(value || '')
+            .replace(/\s*\[Open:\s*\d+d\]\s*$/i, '')
+            .trim();
+    }
+
+    function migrateStoredTaskDescriptions() {
+        const logs = getLogs();
+        if (!Array.isArray(logs) || logs.length === 0) return;
+
+        let changed = false;
+        const migratedLogs = logs.map(log => {
+            if (!log || log.type !== 'task') return log;
+            const cleanedDescription = stripOpenMarkerFromDescription(log.description);
+            if (cleanedDescription !== String(log.description || '')) {
+                changed = true;
+                return {
+                    ...log,
+                    description: cleanedDescription
+                };
+            }
+            return log;
+        });
+
+        if (changed) {
+            localStorage.setItem('warSmartLog', JSON.stringify(migratedLogs));
+        }
     }
 
     function filterLogsByPeriod(logs, periodSelection) {
@@ -370,6 +420,53 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${year}-${month}-${day}`;
     }
 
+    function showSaveToast(message) {
+        let toast = document.getElementById('save-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'save-toast';
+            toast.className = 'save-toast';
+            document.body.appendChild(toast);
+        }
+
+        toast.textContent = message;
+        toast.classList.add('visible');
+
+        if (saveToastTimer) {
+            clearTimeout(saveToastTimer);
+        }
+
+        saveToastTimer = setTimeout(() => {
+            toast.classList.remove('visible');
+        }, 2200);
+    }
+
+    function initializeDateInputs() {
+        const today = getLocalDateString();
+        ['task-date', 'meeting-date', 'risk-date', 'generic-date'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) input.value = today;
+        });
+        if (taskCompletedDateInput) taskCompletedDateInput.value = '';
+    }
+
+    function updateTaskLifecycleFieldVisibility() {
+        if (!taskCompletedDateWrapper) return;
+        const isTaskForm = logTypeSelector.value === 'task';
+        const isCompleted = document.getElementById('task-status')?.value === 'Completed';
+        taskCompletedDateWrapper.style.display = isTaskForm && isCompleted ? 'block' : 'none';
+
+        if (isTaskForm && isCompleted && taskCompletedDateInput && !taskCompletedDateInput.value) {
+            taskCompletedDateInput.value = getLocalDateString();
+        }
+
+        if (isTaskForm && !isCompleted && taskCompletedDateInput) {
+            taskCompletedDateInput.value = '';
+        }
+
+        adjustLogViewHeight();
+    }
+
     // --- INITIALIZATION ---
     async function initialize() {
         await loadConfig();
@@ -378,7 +475,9 @@ document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
         updateFormVisibility();
         updateCategoryDropdown();
-        document.querySelectorAll('input[type="date"]').forEach(input => input.value = getLocalDateString());
+        migrateStoredTaskDescriptions();
+        initializeDateInputs();
+        updateTaskLifecycleFieldVisibility();
         saveLogsAndRender(getLogs());
     }
 
@@ -392,6 +491,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateProjectFieldVisibility();
             updateOtherCategoryVisibility();
         });
+        const taskStatusSelect = document.getElementById('task-status');
+        if (taskStatusSelect) taskStatusSelect.addEventListener('change', updateTaskLifecycleFieldVisibility);
         logForm.addEventListener('submit', handleFormSubmit);
         importBtn.addEventListener('click', () => importFile.click());
         importFile.addEventListener('change', handleImport);
@@ -434,6 +535,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dashboardContainer.style.display !== 'none') toggleView();
             });
         });
+
+        const statusMetricMap = {
+            'metric-in-progress': 'In Progress',
+            'metric-on-hold': 'On Hold'
+        };
+
+        Object.entries(statusMetricMap).forEach(([metricId, status]) => {
+            const metricEl = document.getElementById(metricId);
+            if (!metricEl) return;
+            const tile = metricEl.closest('.metric-item') || metricEl;
+            tile.style.cursor = 'pointer';
+            tile.title = `Show ${status} tasks`;
+            tile.addEventListener('click', () => {
+                setDrilldown({ type: 'task', category: null, status });
+                if (dashboardContainer.style.display !== 'none') toggleView();
+            });
+        });
     }
 
     // --- DYNAMIC FORM VISIBILITY ---
@@ -446,6 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formSections.forEach(section => section.classList.toggle('active', section.id === activeSectionId));
         updateProjectFieldVisibility();
         updateOtherCategoryVisibility();
+        updateTaskLifecycleFieldVisibility();
     }
 
     // --- MAIN FORM SUBMIT HANDLER ---
@@ -454,40 +573,73 @@ document.addEventListener('DOMContentLoaded', () => {
         const logs = getLogs();
         const type = logTypeSelector.value;
         let newEntry = { id: logIdInput.value || Date.now().toString(), type: type };
+        const existingEntry = logs.find(log => log.id === newEntry.id);
+        let saveMessage = existingEntry ? 'Updated entry' : 'Added entry';
         if (type === 'task') {
             newEntry.jobMode = jobModeSelector.value;
             newEntry.date = document.getElementById('task-date').value;
             newEntry.project = document.getElementById('task-project').value.trim();
             newEntry.status = document.getElementById('task-status').value;
-            newEntry.description = document.getElementById('task-description').value;
+            newEntry.description = stripOpenMarkerFromDescription(document.getElementById('task-description').value);
             const categoryValue = taskCategorySelect.value;
             if (categoryValue === 'Other') {
                 newEntry.category = taskCategoryOtherInput.value.trim() || 'Other';
             } else {
                 newEntry.category = categoryValue;
             }
+
+            const isOpenStatus = newEntry.status === 'In Progress' || newEntry.status === 'On Hold';
+            const wasOpenStatus = existingEntry && (existingEntry.status === 'In Progress' || existingEntry.status === 'On Hold');
+            const manualCompletedDate = taskCompletedDateInput ? taskCompletedDateInput.value : '';
+
+            if (existingEntry?.startDate) {
+                newEntry.startDate = existingEntry.startDate;
+            } else if (isOpenStatus) {
+                newEntry.startDate = newEntry.date || getLocalDateString();
+            }
+
+            if (newEntry.status === 'Completed') {
+                newEntry.completedDate = manualCompletedDate || (wasOpenStatus ? getLocalDateString() : (newEntry.date || getLocalDateString()));
+                if (!newEntry.startDate) {
+                    newEntry.startDate = existingEntry?.startDate || newEntry.date || getLocalDateString();
+                }
+            } else {
+                delete newEntry.completedDate;
+            }
+
+            if (newEntry.status === 'Completed') {
+                const completedDays = getElapsedDays(newEntry.startDate || newEntry.date, newEntry.completedDate || getLocalDateString());
+                saveMessage = `Saved: ${newEntry.category} (Completed${completedDays !== null ? ` ${completedDays}d` : ''})`;
+            } else {
+                saveMessage = `Saved: ${newEntry.category} (${newEntry.status})`;
+            }
         } else if (type === 'meeting') {
             newEntry.date = document.getElementById('meeting-date').value;
             newEntry.subject = document.getElementById('meeting-subject').value;
             newEntry.attendees = document.getElementById('meeting-attendees').value;
             newEntry.duration = document.getElementById('meeting-duration').value;
+            saveMessage = `Saved: Meeting (${newEntry.subject || 'Untitled'})`;
         } else if (type === 'risk') {
             newEntry.date = document.getElementById('risk-date').value;
             newEntry.description = document.getElementById('risk-description').value;
             newEntry.probability = document.getElementById('risk-probability').value;
             newEntry.impact = document.getElementById('risk-impact').value;
             newEntry.mitigation = document.getElementById('risk-mitigation').value;
+            saveMessage = `Saved: Risk (${newEntry.impact || 'N/A'} impact)`;
         } else {
             newEntry.date = document.getElementById('generic-date').value;
             newEntry.description = document.getElementById('generic-description').value;
+            saveMessage = `Saved: ${type.charAt(0).toUpperCase() + type.slice(1)} entry`;
         }
         const existingIndex = logs.findIndex(log => log.id === newEntry.id);
         if (existingIndex > -1) logs[existingIndex] = newEntry; else logs.unshift(newEntry);
-        saveLogsAndRender(logs);
+        saveLogsAndRender(logs, true);
+        showSaveToast(saveMessage);
         logForm.reset();
         logIdInput.value = '';
+        initializeDateInputs();
         updateFormVisibility();
-        document.querySelectorAll('input[type="date"]').forEach(input => input.value = getLocalDateString());
+        updateTaskLifecycleFieldVisibility();
     }
 
     // --- RENDER & FILTER ---
@@ -499,6 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const drilldownFiltered = monthFilteredLogs.filter(log => {
             if (activeDrilldown.type && log.type !== activeDrilldown.type) return false;
             if (activeDrilldown.category && log.category !== activeDrilldown.category) return false;
+            if (activeDrilldown.status && log.status !== activeDrilldown.status) return false;
             return true;
         });
 
@@ -520,6 +673,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeDrilldown.category) {
             parts.push(`Category: ${activeDrilldown.category}`);
         }
+        if (activeDrilldown.status) {
+            parts.push(`Status: ${activeDrilldown.status}`);
+        }
 
         if (parts.length === 0) {
             drilldownContainer.classList.add('hidden');
@@ -535,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeDrilldown = {
             type: next?.type ?? null,
             category: next?.category ?? null,
+            status: next?.status ?? null,
         };
         renderDrilldownChip();
         renderLogs();
@@ -542,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearDrilldown() {
-        setDrilldown({ type: null, category: null });
+        setDrilldown({ type: null, category: null, status: null });
     }
 
     function getLogsForReport() {
@@ -695,8 +852,22 @@ document.addEventListener('DOMContentLoaded', () => {
             let detailsHtml = '';
             switch(log.type) {
                 case 'task':
+                    const taskIsOpen = log.status === 'In Progress' || log.status === 'On Hold';
+                    const taskIsCompleted = log.status === 'Completed';
+                    const startDateForOpen = log.startDate || log.date;
+                    const elapsedDays = taskIsOpen ? getElapsedDays(startDateForOpen) : null;
+                    const completedDays = taskIsCompleted
+                        ? getElapsedDays(log.startDate || log.date, log.completedDate || getLocalDateString())
+                        : null;
+                    const statusWithAgeHtml = taskIsOpen && elapsedDays !== null
+                        ? `<span class="status-open">${log.status} ${elapsedDays}d</span>`
+                        : taskIsCompleted && completedDays !== null
+                            ? `<span class="status-completed">${log.status} ${completedDays}d</span>`
+                            : log.status;
+                    const cleanedDescription = stripOpenMarkerFromDescription(log.description);
                     const projectHtml = log.project ? `<strong>Project:</strong> ${log.project}<br>` : '';
-                    detailsHtml = `${projectHtml}<strong>${log.category} (${log.status}):</strong> ${log.description}`;
+                    const titleClass = taskIsCompleted ? 'task-title-completed' : '';
+                    detailsHtml = `${projectHtml}<strong class="${titleClass}">${log.category} (${statusWithAgeHtml}):</strong> ${cleanedDescription}`;
                     break;
                 case 'meeting':
                     detailsHtml = `<strong>Meeting:</strong> ${log.subject}<br><strong>Attendees:</strong> ${log.attendees} (${log.duration})`;
@@ -804,6 +975,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCategoryDropdown();
             document.getElementById('task-date').value = logToEdit.date;
             document.getElementById('task-status').value = logToEdit.status;
+            if (taskCompletedDateInput) taskCompletedDateInput.value = logToEdit.completedDate || '';
             document.getElementById('task-project').value = logToEdit.project || '';
             document.getElementById('task-description').value = logToEdit.description;
             const standardCategories = Array.from(taskCategorySelect.options).map(opt => opt.value);
@@ -816,6 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             updateProjectFieldVisibility();
             updateOtherCategoryVisibility();
+            updateTaskLifecycleFieldVisibility();
         } else if (logToEdit.type === 'meeting') {
             document.getElementById('meeting-date').value = logToEdit.date;
             document.getElementById('meeting-subject').value = logToEdit.subject;

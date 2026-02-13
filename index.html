@@ -52,6 +52,10 @@
                         <input type="text" id="task-category-other" placeholder="e.g., Emergency Patching">
                     </div>
                     <label for="task-status">Status</label><select id="task-status"></select>
+                    <div id="task-completed-date-wrapper" style="display: none;">
+                        <label for="task-completed-date">Completed Date</label>
+                        <input type="date" id="task-completed-date">
+                    </div>
                     <div id="project-title-wrapper" style="display: none;">
                         <label for="task-project">Project Title</label>
                         <input type="text" id="task-project" placeholder="e.g., Q3 Network Upgrade">
@@ -85,7 +89,10 @@
                 <div class="filter-controls">
                     <input type="text" id="search-input" list="search-suggestions" placeholder="Filter by keyword...">
                     <datalist id="search-suggestions"></datalist>
-                    <select id="month-filter"></select>
+                    <select id="month-filter">
+                        <option value="all">All Months</option>
+                        <option value="rolling365">Last 365 Days</option>
+                    </select>
                     <button id="clear-month-btn" aria-label="Purge filtered results"></button>
                 </div>
             </div>
@@ -113,7 +120,7 @@
                 </div>
             </div>
             <div class="chart-card metrics-card">
-                <h3>Key Metrics (All Time)</h3>
+                <h3>Key Metrics (Selected Period)</h3>
                 <div id="key-metrics-container">
                     <div class="metric-item">
                         <span class="metric-value" id="metric-tasks">0</span>
@@ -139,12 +146,18 @@
                         <span class="metric-value" id="metric-notes">0</span>
                         <span class="metric-label">General Notes</span>
                     </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-in-progress">0</span>
+                        <span class="metric-label">In Progress</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-on-hold">0</span>
+                        <span class="metric-label">On Hold</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="config.embed.js"></script>
 
     <script src="script.js"></script>
 </body>
