@@ -11,6 +11,7 @@
  *   fallback to the legacy download method for unsupported browsers.
  ******************************************************************************/
 document.addEventListener('DOMContentLoaded', () => {
+    const JOB_MODE_STORAGE_KEY = 'warSelectedJobMode';
     
     // --- DATA STRUCTURES ---
     let config = {};
@@ -149,12 +150,23 @@ document.addEventListener('DOMContentLoaded', () => {
             option.textContent = mode;
             jobModeSelector.appendChild(option);
         });
+
+        const storedMode = localStorage.getItem(JOB_MODE_STORAGE_KEY);
+        if (storedMode && jobModes.includes(storedMode)) {
+            jobModeSelector.value = storedMode;
+        } else if (jobModes[0]) {
+            jobModeSelector.value = jobModes[0];
+            localStorage.setItem(JOB_MODE_STORAGE_KEY, jobModes[0]);
+        }
     }
 
     function updateCategoryDropdown() {
         const jobModes = config.jobModes || {};
         const selectedJob = jobModeSelector ? jobModeSelector.value : '';
         const categories = (selectedJob && jobModes[selectedJob]) ? jobModes[selectedJob] : [];
+        if (selectedJob) {
+            localStorage.setItem(JOB_MODE_STORAGE_KEY, selectedJob);
+        }
         taskCategorySelect.innerHTML = '';
         categories.forEach(category => {
             const option = document.createElement('option');
@@ -971,6 +983,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (jobModeSelector) {
                 const jobModeKeys = Object.keys(config.jobModes || {});
                 jobModeSelector.value = logToEdit.jobMode || jobModeKeys[0] || '';
+                if (jobModeSelector.value) {
+                    localStorage.setItem(JOB_MODE_STORAGE_KEY, jobModeSelector.value);
+                }
             }
             updateCategoryDropdown();
             document.getElementById('task-date').value = logToEdit.date;

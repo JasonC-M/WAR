@@ -24,6 +24,10 @@
 <body>
     <div class="main-header">
         <div class="controls-group top-buttons">
+            <div class="header-job-mode-control">
+                <label for="job-mode-selector"><strong>Job Mode</strong></label>
+                <select id="job-mode-selector"></select>
+            </div>
             <button id="import-btn"></button>
             <input type="file" id="import-file" accept=".json" style="display: none;">
             <button id="export-btn"></button>
@@ -45,7 +49,6 @@
                 <select id="log-type-selector"></select>
                 <div id="form-section-task" class="form-section">
                     <label for="task-date">Date</label><input type="date" id="task-date">
-                    <label for="job-mode-selector">Job Mode</label><select id="job-mode-selector"></select>
                     <label for="task-category">Category</label><select id="task-category"></select> <!-- Options are now dynamically populated -->
                     <div id="other-category-wrapper" style="display: none;">
                         <label for="task-category-other">Specify Other Category</label>
