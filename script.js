@@ -92,7 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const actionButtons = [
         document.getElementById('import-btn'),
         document.getElementById('export-btn'),
-        document.getElementById('ai-report-btn')
+        document.getElementById('ai-report-btn'),
+        document.querySelector('.header-job-mode-control')
     ].filter(Boolean);
     const logForm = document.getElementById('log-form');
     const logIdInput = document.getElementById('log-id');
