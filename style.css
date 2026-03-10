@@ -58,6 +58,36 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     font-size: 14px;
 }
 
+.job-mode-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+}
+
+.job-mode-filter-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.sample-log-text-link {
+    color: #007bff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: underline;
+    white-space: nowrap;
+    align-self: center;
+}
+
+.sample-log-text-link:hover {
+    color: #0056b3;
+}
+
 .ghost {
     visibility: hidden !important;
 }
@@ -99,6 +129,8 @@ button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14p
 #export-btn { background-color: #17a2b8; } #export-btn:hover { background-color: #138496; }
 #ai-report-btn { background-color: #007bff; color: #ffffff; }
 #ai-report-btn:hover { background-color: #0056b3; }
+#reset-view-btn { background-color: #6c757d; }
+#reset-view-btn:hover { background-color: #5a6268; }
 #clear-month-btn { background-color: #dc3545; } #clear-month-btn:hover { background-color: #c82333; }
 #toggle-view-btn { background-color: #6c757d; } #toggle-view-btn:hover { background-color: #5a6268; }
 
@@ -140,6 +172,14 @@ button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14p
 .edit-btn { color: #007bff; } .delete-btn { color: #dc3545; }
 .log-table td:last-child { width: 60px; text-align: center; }
 
+.danger-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #f1b0b7;
+}
+
 /* --- Dashboard Styling --- */
 #dashboard-container { display: none; max-width: 1400px; margin: 0 auto; }
 .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }
@@ -158,13 +198,14 @@ button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14p
     font-weight: 700;
 }
 
-.log-table .status-completed {
-    color: #28a745 !important;
+.log-table .status-hold {
+    color: #fd7e14 !important;
     font-weight: 700;
 }
 
-.log-table .task-title-completed {
-    color: #28a745;
+.log-table .status-completed {
+    color: #28a745 !important;
+    font-weight: 700;
 }
 
 .save-toast {

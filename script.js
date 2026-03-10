@@ -12,6 +12,7 @@
  ******************************************************************************/
 document.addEventListener('DOMContentLoaded', () => {
     const JOB_MODE_STORAGE_KEY = 'warSelectedJobMode';
+    const JOB_MODE_FILTER_STORAGE_KEY = 'warFilterByJobMode';
     
     // --- DATA STRUCTURES ---
     let config = {};
@@ -93,12 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('import-btn'),
         document.getElementById('export-btn'),
         document.getElementById('ai-report-btn'),
+        document.getElementById('sample-log-text-link'),
         document.querySelector('.header-job-mode-control')
     ].filter(Boolean);
     const logForm = document.getElementById('log-form');
     const logIdInput = document.getElementById('log-id');
     const logTypeSelector = document.getElementById('log-type-selector');
     const jobModeSelector = document.getElementById('job-mode-selector');
+    const jobModeFilterToggle = document.getElementById('job-mode-filter-toggle');
     const formSections = document.querySelectorAll('.form-section');
     const logEntriesBody = document.getElementById('log-entries-body');
     const monthFilter = document.getElementById('month-filter');
@@ -106,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const importFile = document.getElementById('import-file');
     const exportBtn = document.getElementById('export-btn');
     const aiReportBtn = document.getElementById('ai-report-btn');
+    const resetViewBtn = document.getElementById('reset-view-btn');
     const clearMonthBtn = document.getElementById('clear-month-btn');
     const taskDateInput = document.getElementById('task-date');
     const taskCompletedDateInput = document.getElementById('task-completed-date');
@@ -179,6 +183,18 @@ document.addEventListener('DOMContentLoaded', () => {
         updateOtherCategoryVisibility();
     }
 
+    function isJobModeFilterEnabled() {
+        return Boolean(jobModeFilterToggle?.checked);
+    }
+
+    function filterLogsByJobMode(logs) {
+        if (!Array.isArray(logs)) return [];
+        if (!isJobModeFilterEnabled()) return logs;
+        const selectedJob = jobModeSelector ? jobModeSelector.value : '';
+        if (!selectedJob) return logs;
+        return logs.filter(log => !log || log.type !== 'task' || log.jobMode === selectedJob);
+    }
+
     const adjustLogViewHeight = () => {
         requestAnimationFrame(() => {
             if (formContainer && logViewContainer && formContainer.offsetHeight > 0) {
@@ -195,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCategoryChart() {
-        const logs = filterLogsByPeriod(getLogs(), monthFilter.value);
+        const logs = filterLogsByJobMode(filterLogsByPeriod(getLogs(), monthFilter.value));
         const categoryCounts = logs.reduce((acc, log) => {
             if (log.type === 'task' && log.category) {
                 acc[log.category] = (acc[log.category] || 0) + 1;
@@ -238,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderKeyMetrics() {
-        const allLogs = filterLogsByPeriod(getLogs(), monthFilter.value);
+        const allLogs = filterLogsByJobMode(filterLogsByPeriod(getLogs(), monthFilter.value));
         const counts = allLogs.reduce((acc, log) => {
             acc[log.type] = (acc[log.type] || 0) + 1;
             return acc;
@@ -320,12 +336,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getElapsedDays(startDateStr, endDateStr = getLocalDateString()) {
-        if (!startDateStr) return null;
-        const start = new Date(`${startDateStr}T00:00:00`);
-        const end = new Date(`${endDateStr}T00:00:00`);
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+        const parseIsoDateToUtc = (value) => {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+            if (!match) return null;
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            return Date.UTC(year, month - 1, day);
+        };
+
+        const startUtc = parseIsoDateToUtc(startDateStr);
+        const endUtc = parseIsoDateToUtc(endDateStr);
+        if (startUtc === null || endUtc === null) return null;
         const msPerDay = 24 * 60 * 60 * 1000;
-        const days = Math.floor((end - start) / msPerDay);
+        const days = Math.floor((endUtc - startUtc) / msPerDay);
         return Math.max(0, days);
     }
 
@@ -333,6 +357,51 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(value || '')
             .replace(/\s*\[Open:\s*\d+d\]\s*$/i, '')
             .trim();
+    }
+
+    function normalizeTaskStatus(statusValue) {
+        const normalized = String(statusValue || '').trim().toLowerCase();
+        if (normalized === 'in progress' || normalized === 'in-progress') return 'In Progress';
+        if (normalized === 'on hold' || normalized === 'on-hold') return 'On Hold';
+        return 'Completed';
+    }
+
+    function normalizeLogEntry(entry, fallbackDate = getLocalDateString()) {
+        if (!entry || typeof entry !== 'object') return null;
+
+        const normalizedEntry = {
+            ...entry,
+            id: String(entry.id || Date.now().toString()),
+            date: (/^\d{4}-\d{2}-\d{2}$/.test(String(entry.date || '')) ? entry.date : fallbackDate),
+        };
+
+        if (normalizedEntry.type === 'task') {
+            normalizedEntry.status = normalizeTaskStatus(normalizedEntry.status);
+            normalizedEntry.description = stripOpenMarkerFromDescription(normalizedEntry.description);
+            normalizedEntry.category = normalizedEntry.category || 'Other';
+            normalizedEntry.startDate = normalizedEntry.date;
+
+            const isOpenStatus = normalizedEntry.status === 'In Progress' || normalizedEntry.status === 'On Hold';
+
+            if (isOpenStatus) {
+                delete normalizedEntry.completedDate;
+            } else {
+                const completedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(normalizedEntry.completedDate || ''))
+                    ? normalizedEntry.completedDate
+                    : normalizedEntry.date;
+                normalizedEntry.completedDate = completedDate;
+            }
+        }
+
+        return normalizedEntry;
+    }
+
+    function normalizeLogs(logs) {
+        if (!Array.isArray(logs)) return [];
+        const today = getLocalDateString();
+        return logs
+            .map(log => normalizeLogEntry(log, today))
+            .filter(Boolean);
     }
 
     function migrateStoredTaskDescriptions() {
@@ -358,6 +427,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function migrateStoredLogsForLifecycle() {
+        const logs = getLogs();
+        if (!Array.isArray(logs) || logs.length === 0) return;
+
+        const normalizedLogs = normalizeLogs(logs);
+        if (JSON.stringify(normalizedLogs) !== JSON.stringify(logs)) {
+            localStorage.setItem('warSmartLog', JSON.stringify(normalizedLogs));
+        }
+    }
+
     function filterLogsByPeriod(logs, periodSelection) {
         if (periodSelection === 'rolling365') {
             return getLogsForLast365Days(logs);
@@ -378,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateAutocomplete() {
         const allLogs = getLogs();
         const selectedMonth = monthFilter.value;
-        const logsForSuggestions = filterLogsByPeriod(allLogs, selectedMonth);
+        const logsForSuggestions = filterLogsByJobMode(filterLogsByPeriod(allLogs, selectedMonth));
         const wordSet = new Set();
         const commonWords = new Set(['a', 'an', 'the', 'in', 'on', 'for', 'and', 'with', 'to', 'of', 'is', 'it', 'was', 'were']);
         logsForSuggestions.forEach(log => {
@@ -489,6 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFormVisibility();
         updateCategoryDropdown();
         migrateStoredTaskDescriptions();
+        migrateStoredLogsForLifecycle();
         initializeDateInputs();
         updateTaskLifecycleFieldVisibility();
         saveLogsAndRender(getLogs());
@@ -499,7 +579,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupEventListeners() {
         toggleViewBtn.addEventListener('click', toggleView);
         logTypeSelector.addEventListener('change', updateFormVisibility);
-        jobModeSelector.addEventListener('change', updateCategoryDropdown);
+        jobModeSelector.addEventListener('change', () => {
+            updateCategoryDropdown();
+            renderLogs();
+            renderDrilldownChip();
+            updateAiButtonContext();
+            populateAutocomplete();
+            if (dashboardContainer.style.display !== 'none') {
+                renderDashboard();
+            }
+        });
+        if (jobModeFilterToggle) {
+            jobModeFilterToggle.addEventListener('change', () => {
+                localStorage.setItem(JOB_MODE_FILTER_STORAGE_KEY, jobModeFilterToggle.checked ? '1' : '0');
+                renderLogs();
+                renderDrilldownChip();
+                updateAiButtonContext();
+                populateAutocomplete();
+                if (dashboardContainer.style.display !== 'none') {
+                    renderDashboard();
+                }
+            });
+        }
         taskCategorySelect.addEventListener('change', () => {
             updateProjectFieldVisibility();
             updateOtherCategoryVisibility();
@@ -510,10 +611,15 @@ document.addEventListener('DOMContentLoaded', () => {
         importBtn.addEventListener('click', () => importFile.click());
         importFile.addEventListener('change', handleImport);
         exportBtn.addEventListener('click', handleExport);
+        if (resetViewBtn) resetViewBtn.addEventListener('click', resetCurrentView);
         clearMonthBtn.addEventListener('click', clearCurrentViewLogs);
         if (drilldownClearBtn) drilldownClearBtn.addEventListener('click', clearDrilldown);
         monthFilter.addEventListener('change', () => {
             populateAutocomplete();
+            if (activeDrilldown.type || activeDrilldown.category || activeDrilldown.status) {
+                clearDrilldown();
+                return;
+            }
             renderLogs();
             updateAiButtonContext();
             renderDrilldownChip();
@@ -604,24 +710,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOpenStatus = newEntry.status === 'In Progress' || newEntry.status === 'On Hold';
             const wasOpenStatus = existingEntry && (existingEntry.status === 'In Progress' || existingEntry.status === 'On Hold');
             const manualCompletedDate = taskCompletedDateInput ? taskCompletedDateInput.value : '';
-
-            if (existingEntry?.startDate) {
-                newEntry.startDate = existingEntry.startDate;
-            } else if (isOpenStatus) {
-                newEntry.startDate = newEntry.date || getLocalDateString();
-            }
+            newEntry.startDate = newEntry.date || getLocalDateString();
 
             if (newEntry.status === 'Completed') {
                 newEntry.completedDate = manualCompletedDate || (wasOpenStatus ? getLocalDateString() : (newEntry.date || getLocalDateString()));
-                if (!newEntry.startDate) {
-                    newEntry.startDate = existingEntry?.startDate || newEntry.date || getLocalDateString();
-                }
             } else {
                 delete newEntry.completedDate;
             }
 
             if (newEntry.status === 'Completed') {
-                const completedDays = getElapsedDays(newEntry.startDate || newEntry.date, newEntry.completedDate || getLocalDateString());
+                const completedDays = getElapsedDays(newEntry.date, newEntry.completedDate || newEntry.date || getLocalDateString());
                 saveMessage = `Saved: ${newEntry.category} (Completed${completedDays !== null ? ` ${completedDays}d` : ''})`;
             } else {
                 saveMessage = `Saved: ${newEntry.category} (${newEntry.status})`;
@@ -660,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const allLogs = getLogs();
         const selectedMonth = monthFilter.value;
         const searchTokens = tokenizeForSearch(searchInput.value);
-        const monthFilteredLogs = filterLogsByPeriod(allLogs, selectedMonth);
+        const monthFilteredLogs = filterLogsByJobMode(filterLogsByPeriod(allLogs, selectedMonth));
         const drilldownFiltered = monthFilteredLogs.filter(log => {
             if (activeDrilldown.type && log.type !== activeDrilldown.type) return false;
             if (activeDrilldown.category && log.category !== activeDrilldown.category) return false;
@@ -718,7 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getLogsForReport() {
         const allLogs = getLogs();
         const selectedMonth = monthFilter.value;
-        return filterLogsByPeriod(allLogs, selectedMonth);
+        return filterLogsByJobMode(filterLogsByPeriod(allLogs, selectedMonth));
     }
 
     function getLogsForSelectedYear() {
@@ -735,13 +833,13 @@ document.addEventListener('DOMContentLoaded', () => {
             [targetYear] = latestDate.split('-');
         }
 
-        return allLogs.filter(log => log.date && log.date.startsWith(`${targetYear}-`));
+        return filterLogsByJobMode(allLogs.filter(log => log.date && log.date.startsWith(`${targetYear}-`)));
     }
 
     function getLogsForAiScope(scope) {
         if (scope === 'month') return getLogsForReport();
         if (scope === 'year') return getLogsForSelectedYear();
-        if (scope === 'rolling365') return getLogsForLast365Days();
+        if (scope === 'rolling365') return filterLogsByJobMode(getLogsForLast365Days());
         return getFilteredLogs();
     }
 
@@ -867,20 +965,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'task':
                     const taskIsOpen = log.status === 'In Progress' || log.status === 'On Hold';
                     const taskIsCompleted = log.status === 'Completed';
-                    const startDateForOpen = log.startDate || log.date;
+                    const startDateForOpen = log.date || log.startDate;
                     const elapsedDays = taskIsOpen ? getElapsedDays(startDateForOpen) : null;
                     const completedDays = taskIsCompleted
-                        ? getElapsedDays(log.startDate || log.date, log.completedDate || getLocalDateString())
+                        ? getElapsedDays(log.date || log.startDate, log.completedDate || log.date || getLocalDateString())
                         : null;
                     const statusWithAgeHtml = taskIsOpen && elapsedDays !== null
-                        ? `<span class="status-open">${log.status} ${elapsedDays}d</span>`
+                        ? `<span class="${log.status === 'On Hold' ? 'status-hold' : 'status-open'}">${log.status} ${elapsedDays}d</span>`
                         : taskIsCompleted && completedDays !== null
                             ? `<span class="status-completed">${log.status} ${completedDays}d</span>`
                             : log.status;
                     const cleanedDescription = stripOpenMarkerFromDescription(log.description);
                     const projectHtml = log.project ? `<strong>Project:</strong> ${log.project}<br>` : '';
-                    const titleClass = taskIsCompleted ? 'task-title-completed' : '';
-                    detailsHtml = `${projectHtml}<strong class="${titleClass}">${log.category} (${statusWithAgeHtml}):</strong> ${cleanedDescription}`;
+                    detailsHtml = `${projectHtml}<strong>${log.category}</strong> (${statusWithAgeHtml}): ${cleanedDescription}`;
                     break;
                 case 'meeting':
                     detailsHtml = `<strong>Meeting:</strong> ${log.subject}<br><strong>Attendees:</strong> ${log.attendees} (${log.duration})`;
@@ -908,8 +1005,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const logsFromFile = JSON.parse(e.target.result);
                 if (Array.isArray(logsFromFile)) {
-                    saveLogsAndRender(logsFromFile);
-                    alert(`Successfully imported ${logsFromFile.length} log entries.`);
+                    const normalizedLogs = normalizeLogs(logsFromFile);
+                    saveLogsAndRender(normalizedLogs);
+                    alert(`Successfully imported ${normalizedLogs.length} log entries.`);
                 } else alert('Invalid file format.');
             } catch (error) { alert('Error parsing file.'); }
         };
@@ -970,6 +1068,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const remainingLogs = getLogs().filter(log => !visibleIds.has(log.id));
             saveLogsAndRender(remainingLogs, true);
         }
+    }
+
+    function resetCurrentView() {
+        searchInput.value = '';
+        const currentMonthValue = getLocalDateString().substring(0, 7);
+        const allLogs = getLogs().filter(log => log && log.date);
+        const hasCurrentMonthData = allLogs.some(log => log.date.startsWith(`${currentMonthValue}-`));
+
+        if (hasCurrentMonthData) {
+            if (!monthFilter.querySelector(`option[value="${currentMonthValue}"]`)) {
+                const [year, month] = currentMonthValue.split('-');
+                const dateForLabel = new Date(Number(year), Number(month) - 1, 1);
+                const optionLabel = dateForLabel.toLocaleString('default', { month: 'long', year: 'numeric' });
+                const currentMonthOption = new Option(optionLabel, currentMonthValue);
+                monthFilter.add(currentMonthOption);
+            }
+            monthFilter.value = currentMonthValue;
+        } else {
+            const mostRecentMonthWithData = allLogs
+                .map(log => log.date.substring(0, 7))
+                .sort()
+                .pop();
+            monthFilter.value = mostRecentMonthWithData || 'all';
+        }
+        if (jobModeFilterToggle) {
+            jobModeFilterToggle.checked = false;
+            localStorage.setItem(JOB_MODE_FILTER_STORAGE_KEY, '0');
+        }
+        clearDrilldown();
+        populateAutocomplete();
+        renderLogs();
+        updateAiButtonContext();
+        renderDrilldownChip();
     }
     
     // --- EDIT & DELETE (Global Scope) ---
@@ -1098,5 +1229,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- RUN APPLICATION ---
+    if (jobModeFilterToggle) {
+        jobModeFilterToggle.checked = localStorage.getItem(JOB_MODE_FILTER_STORAGE_KEY) === '1';
+    }
     initialize();
 });

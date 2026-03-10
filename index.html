@@ -24,9 +24,14 @@
 <body>
     <div class="main-header">
         <div class="controls-group top-buttons">
+            <a id="sample-log-text-link" class="sample-log-text-link" href="work_log_sample_2y_high_volume.json" download="work_log_sample_2y_high_volume.json" title="Download sample 2-year high-volume log JSON">Sample Log</a>
             <div class="header-job-mode-control">
                 <label for="job-mode-selector"><strong>Job Mode</strong></label>
                 <select id="job-mode-selector"></select>
+                <label for="job-mode-filter-toggle" class="job-mode-filter-toggle" title="When enabled, only entries matching the selected Job Mode are shown.">
+                    <input type="checkbox" id="job-mode-filter-toggle">
+                    Filter
+                </label>
             </div>
             <button id="import-btn"></button>
             <input type="file" id="import-file" accept=".json" style="display: none;">
@@ -96,7 +101,7 @@
                         <option value="all">All Months</option>
                         <option value="rolling365">Last 365 Days</option>
                     </select>
-                    <button id="clear-month-btn" aria-label="Purge filtered results"></button>
+                    <button id="reset-view-btn" type="button" aria-label="Reset current view filters">Reset View</button>
                 </div>
             </div>
             <div id="drilldown-container" class="drilldown-container hidden">
@@ -110,6 +115,9 @@
                     </thead>
                     <tbody id="log-entries-body"></tbody>
                 </table>
+            </div>
+            <div class="danger-actions">
+                <button id="clear-month-btn" aria-label="Purge filtered results"></button>
             </div>
         </div>
     </div>
