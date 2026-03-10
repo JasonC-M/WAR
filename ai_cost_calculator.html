@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WAR AI API Cost Calculator</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 22px;
+    }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 1.6rem;
+    }
+    .subtitle {
+      margin-top: 0;
+      margin-bottom: 18px;
+      color: #666;
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .card {
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fafafa;
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+    }
+    label {
+      display: block;
+      font-size: 0.86rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #d5d5d5;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #f2f2f2;
+    }
+    .result-wrap {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+    }
+    .result {
+      border: 1px solid #d9e7ff;
+      background: #f4f8ff;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .result .label {
+      font-size: 0.82rem;
+      color: #4b5d7a;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .result .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #1464d2;
+    }
+    .hint {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>WAR AI API Cost Calculator</h1>
+    <p class="subtitle">No code required. Replace placeholder values with your provider pricing to estimate monthly costs.</p>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Global Settings</h2>
+        <label for="charsPerToken">Chars per Token (planning estimate)</label>
+        <input id="charsPerToken" type="number" min="1" step="0.1" value="4" />
+
+        <label for="maxChars">Max Input Cap (chars)</label>
+        <input id="maxChars" type="number" min="1000" step="1000" value="25000" />
+
+        <label for="paddingMultiplier">Safety Multiplier (x)</label>
+        <input id="paddingMultiplier" type="number" min="1" step="0.5" value="4" />
+      </div>
+
+      <div class="card">
+        <h2>Model A (Mini)</h2>
+        <label for="inputRateA">Input $ per 1M tokens</label>
+        <input id="inputRateA" type="number" min="0" step="0.0001" value="0.20" />
+
+        <label for="outputRateA">Output $ per 1M tokens</label>
+        <input id="outputRateA" type="number" min="0" step="0.0001" value="0.80" />
+      </div>
+
+      <div class="card">
+        <h2>Model B (Standard)</h2>
+        <label for="inputRateB">Input $ per 1M tokens</label>
+        <input id="inputRateB" type="number" min="0" step="0.0001" value="1.00" />
+
+        <label for="outputRateB">Output $ per 1M tokens</label>
+        <input id="outputRateB" type="number" min="0" step="0.0001" value="4.00" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Monthly Usage Assumptions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Report Type</th>
+            <th>Runs / Month</th>
+            <th>Avg Input Chars</th>
+            <th>Avg Output Tokens</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Monthly</td>
+            <td><input id="runsMonthly" type="number" min="0" step="1" value="28" /></td>
+            <td><input id="charsMonthly" type="number" min="0" step="100" value="8000" /></td>
+            <td><input id="outMonthly" type="number" min="0" step="10" value="900" /></td>
+          </tr>
+          <tr>
+            <td>Annual</td>
+            <td><input id="runsAnnual" type="number" min="0" step="1" value="10" /></td>
+            <td><input id="charsAnnual" type="number" min="0" step="100" value="18000" /></td>
+            <td><input id="outAnnual" type="number" min="0" step="10" value="1200" /></td>
+          </tr>
+          <tr>
+            <td>Resume</td>
+            <td><input id="runsResume" type="number" min="0" step="1" value="2" /></td>
+            <td><input id="charsResume" type="number" min="0" step="100" value="20000" /></td>
+            <td><input id="outResume" type="number" min="0" step="10" value="1200" /></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="result-wrap">
+        <div class="result">
+          <div class="label">Model A Estimated Monthly</div>
+          <div class="value" id="totalA">$0.00</div>
+        </div>
+        <div class="result">
+          <div class="label">Model A Padded Monthly</div>
+          <div class="value" id="totalAPadded">$0.00</div>
+        </div>
+        <div class="result">
+          <div class="label">Model B Estimated Monthly</div>
+          <div class="value" id="totalB">$0.00</div>
+        </div>
+        <div class="result">
+          <div class="label">Model B Padded Monthly</div>
+          <div class="value" id="totalBPadded">$0.00</div>
+        </div>
+      </div>
+
+      <div class="hint" id="capHint"></div>
+    </div>
+  </div>
+
+  <script>
+    const ids = [
+      'charsPerToken', 'maxChars', 'paddingMultiplier',
+      'inputRateA', 'outputRateA', 'inputRateB', 'outputRateB',
+      'runsMonthly', 'charsMonthly', 'outMonthly',
+      'runsAnnual', 'charsAnnual', 'outAnnual',
+      'runsResume', 'charsResume', 'outResume'
+    ];
+
+    const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+
+    const money = n => '$' + n.toFixed(4);
+
+    function val(id) {
+      return Number(el[id].value || 0);
+    }
+
+    function runCost(inputChars, outputTokens, charsPerToken, inputRate, outputRate) {
+      const inputTokens = inputChars / Math.max(0.1, charsPerToken);
+      const inputCost = (inputTokens / 1_000_000) * inputRate;
+      const outputCost = (outputTokens / 1_000_000) * outputRate;
+      return inputCost + outputCost;
+    }
+
+    function calculateModelTotal(inputRate, outputRate) {
+      const cpt = val('charsPerToken');
+      const monthly = runCost(val('charsMonthly'), val('outMonthly'), cpt, inputRate, outputRate) * val('runsMonthly');
+      const annual = runCost(val('charsAnnual'), val('outAnnual'), cpt, inputRate, outputRate) * val('runsAnnual');
+      const resume = runCost(val('charsResume'), val('outResume'), cpt, inputRate, outputRate) * val('runsResume');
+      return monthly + annual + resume;
+    }
+
+    function updateCapHint() {
+      const maxChars = val('maxChars');
+      const parts = [
+        ['Monthly', val('charsMonthly')],
+        ['Annual', val('charsAnnual')],
+        ['Resume', val('charsResume')]
+      ];
+      const over = parts.filter(([, chars]) => chars > maxChars).map(([name]) => name);
+      const hint = document.getElementById('capHint');
+      if (over.length === 0) {
+        hint.textContent = `All report inputs are within cap (${maxChars.toLocaleString()} chars).`;
+        hint.style.color = '#2f6b2f';
+      } else {
+        hint.textContent = `Over cap (${maxChars.toLocaleString()} chars): ${over.join(', ')}. Consider reducing payload size.`;
+        hint.style.color = '#8a2c2c';
+      }
+    }
+
+    function recalc() {
+      const totalA = calculateModelTotal(val('inputRateA'), val('outputRateA'));
+      const totalB = calculateModelTotal(val('inputRateB'), val('outputRateB'));
+      const multiplier = Math.max(1, val('paddingMultiplier'));
+
+      document.getElementById('totalA').textContent = money(totalA);
+      document.getElementById('totalAPadded').textContent = money(totalA * multiplier);
+      document.getElementById('totalB').textContent = money(totalB);
+      document.getElementById('totalBPadded').textContent = money(totalB * multiplier);
+
+      updateCapHint();
+    }
+
+    ids.forEach(id => el[id].addEventListener('input', recalc));
+    recalc();
+  </script>
+</body>
+</html>

@@ -94,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('import-btn'),
         document.getElementById('export-btn'),
         document.getElementById('ai-report-btn'),
-        document.getElementById('sample-log-text-link'),
         document.querySelector('.header-job-mode-control')
     ].filter(Boolean);
     const logForm = document.getElementById('log-form');
@@ -102,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logTypeSelector = document.getElementById('log-type-selector');
     const jobModeSelector = document.getElementById('job-mode-selector');
     const jobModeFilterToggle = document.getElementById('job-mode-filter-toggle');
+    const sampleLogLoadBtn = document.getElementById('sample-log-load-btn');
     const formSections = document.querySelectorAll('.form-section');
     const logEntriesBody = document.getElementById('log-entries-body');
     const monthFilter = document.getElementById('month-filter');
@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${year}-${month}-${day}`;
     }
 
-    function showSaveToast(message) {
+    function showSaveToast(message, variant = 'success') {
         let toast = document.getElementById('save-toast');
         if (!toast) {
             toast = document.createElement('div');
@@ -522,6 +522,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         toast.textContent = message;
+        toast.classList.remove('error');
+        if (variant === 'error') {
+            toast.classList.add('error');
+        }
         toast.classList.add('visible');
 
         if (saveToastTimer) {
@@ -530,7 +534,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveToastTimer = setTimeout(() => {
             toast.classList.remove('visible');
-        }, 2200);
+        }, 4000);
+    }
+
+    function showErrorToast(message) {
+        showSaveToast(message, 'error');
     }
 
     function initializeDateInputs() {
@@ -610,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logForm.addEventListener('submit', handleFormSubmit);
         importBtn.addEventListener('click', () => importFile.click());
         importFile.addEventListener('change', handleImport);
+        if (sampleLogLoadBtn) sampleLogLoadBtn.addEventListener('click', handleLoadSampleLog);
         exportBtn.addEventListener('click', handleExport);
         if (resetViewBtn) resetViewBtn.addEventListener('click', resetCurrentView);
         clearMonthBtn.addEventListener('click', clearCurrentViewLogs);
@@ -1013,6 +1022,28 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsText(file);
         importFile.value = '';
+    }
+
+    async function handleLoadSampleLog() {
+        if (getLogs().length > 0 && !confirm('This will overwrite your current logs with the sample log. Continue?')) return;
+        try {
+            const response = await fetch(`./work_log_sample_2y_high_volume.json?cacheBust=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} ${response.statusText}`);
+            }
+
+            const logsFromSample = await response.json();
+            if (!Array.isArray(logsFromSample)) {
+                throw new Error('Sample file format is invalid.');
+            }
+
+            const normalizedLogs = normalizeLogs(logsFromSample);
+            saveLogsAndRender(normalizedLogs);
+            showSaveToast(`Loaded sample log (${normalizedLogs.length} entries)`);
+        } catch (error) {
+            console.error('Failed to load sample log:', error);
+            showErrorToast('Could not load sample log. Check that sample JSON exists and app is served via http://.');
+        }
     }
 
     // MODIFICATION: Rewritten to use the modern File System Access API with a fallback

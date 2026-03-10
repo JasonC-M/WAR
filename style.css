@@ -75,19 +75,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     margin: 0;
 }
 
-.sample-log-text-link {
-    color: #007bff;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: underline;
-    white-space: nowrap;
-    align-self: center;
-}
-
-.sample-log-text-link:hover {
-    color: #0056b3;
-}
-
 .ghost {
     visibility: hidden !important;
 }
@@ -131,6 +118,8 @@ button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14p
 #ai-report-btn:hover { background-color: #0056b3; }
 #reset-view-btn { background-color: #6c757d; }
 #reset-view-btn:hover { background-color: #5a6268; }
+#sample-log-load-btn { background-color: #6c757d; }
+#sample-log-load-btn:hover { background-color: #5a6268; }
 #clear-month-btn { background-color: #dc3545; } #clear-month-btn:hover { background-color: #c82333; }
 #toggle-view-btn { background-color: #6c757d; } #toggle-view-btn:hover { background-color: #5a6268; }
 
@@ -174,10 +163,16 @@ button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14p
 
 .danger-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
     margin-top: 10px;
     padding-top: 8px;
     border-top: 1px dashed #f1b0b7;
+}
+
+.danger-actions button {
+    flex: 1 1 0;
 }
 
 /* --- Dashboard Styling --- */
@@ -224,6 +219,10 @@ button { padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14p
     transform: translateY(8px);
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.save-toast.error {
+    background-color: #dc3545;
 }
 
 .save-toast.visible {

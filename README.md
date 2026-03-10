@@ -1,94 +1,81 @@
-# WAR (Work Activity Report) - User Guide
+# WAR (Work Activity Report)
 
-## Introduction
+WAR is a browser-first work logging app for tracking tasks, meetings, risks, accolades, requirements, and notes.
 
-Welcome to the Work Activity Report (WAR) tool. This is a simple, private browser app designed to help you quickly log and organize day-to-day work activities.
+It runs locally in your browser and stores data in localStorage unless you explicitly import/export JSON files.
 
-WAR runs entirely in your browser, and your log data stays local to your machine unless you export it.
+## Current Highlights
 
-## What's New (February 2026)
-
-- **Global Job Mode:** Job Mode now lives in the top header (to the **left** of **Import from File**).
-- **Single-mode behavior:** The selected Job Mode applies consistently across the page, including Dashboard ↔ Log view switching.
-- **Persistence:** Job Mode is saved in browser storage and restored automatically on reload.
-- **Dynamic categories:** Task category choices are always driven by the currently selected Job Mode.
-
-## Key Features
-
-- **Versatile logging:** Track tasks, meetings, risks, accolades, requirements, and notes.
-- **Dynamic filtering:** Filter by keyword, month, year, or rolling 365-day window.
-- **Visual dashboard:** View category charts and key metrics with drilldown support.
-- **Data portability:** Import/export your full log as JSON.
-- **AI-ready summaries:** Build scoped prompt text (filtered/monthly/annual/resume context) from the current view.
-
----
-
-## How to Use the Application
-
-### 1) Set Job Mode (Global)
-
-Use the **Job Mode** selector in the top header to choose your working context.
-
-- This setting controls available Task categories.
-- It persists between sessions in local storage.
-
-### 2) Log an Activity
-
-1. Select a **Log Entry Type**.
-2. Fill in the form fields.
-3. Click **Add / Update Log Entry**.
-
-### 3) View and Filter
-
-- Use the search box for keyword filtering.
-- Use the date filter for month/year/all/rolling-365 views.
-- Use dashboard tiles/charts for drilldown into matching entries.
-
-### 4) Use the Dashboard
-
-1. Click **View Dashboard**.
-2. Review category chart + key metrics.
-3. Click **View Log** to return.
-
-### 5) Generate AI Report Prompt
-
-Click **AI Report**. The app automatically selects scope/template based on the active view/filter state and copies a complete prompt + source log details to your clipboard.
+- Global **Job Mode** selector with dynamic task categories.
+- Optional **Job Mode Filter** toggle for view-level filtering.
+- One-click **Load Sample Log Data** button.
+- Safer control layout with:
+	- **Reset View** (non-destructive)
+	- **Delete Displayed Log Entries** (destructive, separated area)
+- Dashboard with category chart, key metrics, and drilldown.
+- AI prompt generator for monthly/annual/resume workflows.
+- Toast feedback for save/load success and error events.
 
 ---
 
 ## Run Locally
 
-From the project folder:
+From project root:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then open:
+Open:
 
 - http://localhost:8000
 - http://localhost:8000/index.html
 
 ---
 
-## Important: Data Safety
+## Primary Workflow
 
-WAR uses browser local storage.
-
-- Logs are stored under `warSmartLog`.
-- Global Job Mode is stored under `warSelectedJobMode`.
-
-Because browser data can be cleared, export backups regularly with **Export to File**.
-
-Best practice: export at least weekly (or after major updates).
+1. **Set Job Mode** in the header.
+2. **Create entries** using the form on the left.
+3. **Filter logs** by keyword + month selector.
+4. Use **Reset View** to clear search/drilldown and reset to a practical month target.
+5. Use **Delete Displayed Log Entries** only when you intentionally want to delete visible rows.
+6. Click **View Dashboard** for chart/metrics and drilldown interactions.
+7. Click **AI Report** to copy report prompt text for the active scope.
 
 ---
 
-## Project File Overview
+## Sample Data
 
-- `index.html` - app layout and structure
-- `style.css` - visual styling
-- `script.js` - behavior, state, filtering, rendering
-- `config.json` and `config.embed.js` - UI text and job mode/category configuration
+- The project includes a varied high-volume sample file:
+	- `work_log_sample_2y_high_volume.json`
+- Use **Load Sample Log Data** for one-click import into browser storage.
+
+---
+
+## Data Storage Keys
+
+- `warSmartLog` - all log entries
+- `warSelectedJobMode` - selected job mode
+- `warFilterByJobMode` - job mode filter toggle state
+
+---
+
+## AI Cost Planning Files
+
+- `AI_API_COST_COMPARISON.md` - provider comparison and planning checklist
+- `AI_API_COST_WORKED_EXAMPLE.md` - worked monthly cost example template
+- `ai_cost_calculator.html` - browser calculator for quick pricing estimates
+
+---
+
+## Project Files
+
+- `index.html` - app structure
+- `style.css` - UI styles
+- `script.js` - app logic, state, filtering, import/export, AI prompt copy
+- `config.json` - runtime control text and options
+- `config.embed.js` - embedded config fallback
 - `ai_config.json` - AI prompt templates
-- `chart.js` - charting library
+- `chart.js` - chart library
+- `work_log_sample_2y_high_volume.json` - sample dataset
