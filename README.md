@@ -61,14 +61,6 @@ Open:
 
 ---
 
-## AI Cost Planning Files
-
-- `AI_API_COST_COMPARISON.md` - provider comparison and planning checklist
-- `AI_API_COST_WORKED_EXAMPLE.md` - worked monthly cost example template
-- `ai_cost_calculator.html` - browser calculator for quick pricing estimates
-
----
-
 ## Project Files
 
 - `index.html` - app structure
