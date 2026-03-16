@@ -83,12 +83,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     display: none !important;
 }
 
-.container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: minmax(400px, 1fr) 2fr; gap: 20px; align-items: start; }
+.container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: minmax(400px, 1fr) 2fr; gap: 20px; align-items: stretch; }
 h1, h2, h3 { color: #333; }
 h2 { margin: 0; }
 
 /* --- Form & Log Containers --- */
-.form-container, .log-view-container { background: #fff; padding: 10px 25px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.form-container, .log-view-container { background: #fff; padding: 10px 25px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 100%; box-sizing: border-box; }
 .log-view-container { display: flex; flex-direction: column; box-sizing: border-box; }
 
 /* --- Main Form Styling --- */

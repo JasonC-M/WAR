@@ -197,9 +197,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const adjustLogViewHeight = () => {
         requestAnimationFrame(() => {
-            if (formContainer && logViewContainer && formContainer.offsetHeight > 0) {
-                const formHeight = formContainer.offsetHeight;
-                logViewContainer.style.height = `${formHeight}px`;
+            if (!formContainer || !logViewContainer || !loggerContainer) return;
+
+            // Clear inline heights before measuring so we always compute from natural size.
+            formContainer.style.height = '';
+            logViewContainer.style.height = '';
+
+            const loggerIsVisible = loggerContainer.style.display !== 'none';
+            const isDesktopLayout = window.matchMedia('(min-width: 1024px)').matches;
+            if (!loggerIsVisible || !isDesktopLayout) return;
+
+            const formHeight = formContainer.getBoundingClientRect().height;
+            const logHeight = logViewContainer.getBoundingClientRect().height;
+            const equalHeight = Math.ceil(Math.max(formHeight, logHeight));
+
+            if (equalHeight > 0) {
+                const pxHeight = `${equalHeight}px`;
+                formContainer.style.height = pxHeight;
+                logViewContainer.style.height = pxHeight;
             }
         });
     };
@@ -635,6 +650,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (aiReportBtn) aiReportBtn.addEventListener('click', handleGenerateAiReport);
         window.addEventListener('resize', adjustLogViewHeight);
+        window.addEventListener('load', adjustLogViewHeight);
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(adjustLogViewHeight).catch(() => {
+                // Ignore font API failures; resize/load handlers still cover layout sync.
+            });
+        }
         const handleSearchUpdate = () => {
             renderLogs();
             updateAiButtonContext();
