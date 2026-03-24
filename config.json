@@ -23,6 +23,17 @@
             "Log Analysis & Auditing",
             "User Training & Phishing Sims",
             "Other"
+        ],
+        "PC Tech": [
+            "Account Creation / Resets",
+            "Software Installation / Updates",
+            "Hardware Replacement / Repair",
+            "New Hire Setup / Offboarding",
+            "Computer Troubleshooting",
+            "Computer Imaging",
+            "Peripheral Assistance (Install / Troubleshooting / Configuring)",
+            "Mobile Device Configuring",
+            "Other"
         ]
     },
     "controls": {
